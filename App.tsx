@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, Download, Loader2, AlertCircle, User, Package, FileText, CheckCircle } from 'lucide-react';
+import { PlusCircle, Trash2, Mail, AlertCircle, User, Package, FileText, Send } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
   LOCATIONS,
@@ -10,6 +10,7 @@ import {
   SUB_INVENTORIES,
   USAGE_INTENTS,
   RC_OBJECTIVES,
+  EMAIL_MAPPING,
 } from './constants';
 import { Input, Select, TextArea } from './components/InputFields';
 
@@ -38,8 +39,6 @@ export default function App() {
   const [location, setLocation] = useState('Selecione');
   const [items, setItems] = useState<RequisitionItem[]>([{ ...initialItem }]);
   
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Helper to update specific item fields
@@ -83,99 +82,76 @@ export default function App() {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOpenOutlook = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
 
     if (!validateForm()) return;
 
-    setLoading(true);
-
-    try {
-      const itemsPayload = items.map((item) => {
-        let finalBuyerObs = item.buyerObservation;
-        if (item.provider && item.provider.trim() !== '') {
-          finalBuyerObs += `${finalBuyerObs ? '\n' : ''}Fornecedor indicado: ${item.provider}.`;
-        }
-        
-        return {
-          ...item,
-          buyerObservation: finalBuyerObs,
-        };
-      });
-
-      const payload = {
-        requester,
-        location,
-        items: itemsPayload,
-      };
-
-      try {
-        const response = await fetch('/api/submit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Erro ao gerar arquivo de requisição.');
-        }
-
-        // Get the response as a Blob (File)
-        const blob = await response.blob();
-        
-        // Create a download link and click it programmatically
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const fileName = `Requisicao_${requester.replace(/\s+/g, '_')}.eml`;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        setSuccess(true);
-        window.scrollTo(0, 0);
-
-      } catch (networkError: any) {
-         throw networkError;
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Falha na comunicação com o servidor.');
-    } finally {
-      setLoading(false);
+    // 1. Identificar Destinatário
+    const recipientEmail = EMAIL_MAPPING[location] || '';
+    if (!recipientEmail) {
+      setError('E-mail não encontrado para a base selecionada.');
+      return;
     }
-  };
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center border-t-4 border-sky-500">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Arquivo Gerado!</h2>
-          <p className="text-gray-600 mb-8">
-             O arquivo <strong>.eml</strong> foi baixado no seu computador.
-             <br/><br/>
-             <span className="font-semibold text-sky-700">Abra-o no Outlook para revisar e enviar o e-mail.</span>
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full bg-sky-600 text-white py-3 px-4 rounded-lg hover:bg-sky-700 transition shadow-md font-medium"
-          >
-            Nova Requisição
-          </button>
-        </div>
-      </div>
-    );
-  }
+    // 2. Montar Assunto
+    const subject = `Solicitação de Requisição de Compra – ${requester} – ${location}`;
+
+    // 3. Montar Corpo do E-mail (Texto Puro Formatado)
+    let body = `SOLICITAÇÃO DE REQUISIÇÃO DE COMPRA\n`;
+    body += `--------------------------------------------------\n`;
+    body += `SOLICITANTE: ${requester}\n`;
+    body += `LOCAL DE ENTREGA: ${location}\n`;
+    body += `--------------------------------------------------\n\n`;
+
+    items.forEach((item, index) => {
+      body += `================ ITEM #${index + 1} ================\n`;
+      body += `CÓDIGO: ${item.itemCode || 'A DEFINIR'}\n`;
+      body += `DESCRIÇÃO:\n${item.description}\n\n`;
+      
+      body += `QUANTIDADE: ${item.quantity}\n`;
+      body += `PREÇO EST.: R$ ${item.price.toFixed(2)}\n`;
+      body += `OS: ${item.osNumber || 'N/A'}\n`;
+      
+      body += `\n--- ORIGEM & ACORDO ---\n`;
+      body += `ORIGEM: ${item.originType}\n`;
+      body += `TIPO ACORDO: ${item.agreementType}\n`;
+      if (item.agreement) body += `ACORDO: ${item.agreement}\n`;
+      if (item.provider) body += `FORNECEDOR: ${item.provider}\n`;
+
+      body += `\n--- CLASSIFICAÇÃO & DESTINO ---\n`;
+      body += `OBJETIVO: ${item.objective}\n`;
+      body += `USO PRETENDIDO: ${item.usageIntent}\n`;
+      body += `TIPO DESTINO: ${item.destinationType}\n`;
+      if (item.subInventory) body += `SUBINVENTÁRIO: ${item.subInventory}\n`;
+
+      body += `\n--- JUSTIFICATIVA ---\n`;
+      body += `${item.justification}\n`;
+
+      if (item.buyerObservation) {
+        body += `\nOBS. COMPRADOR: ${item.buyerObservation}`;
+        if (item.provider) body += ` (Fornecedor indicado: ${item.provider})`;
+        body += `\n`;
+      } else if (item.provider) {
+         body += `\nOBS. COMPRADOR: Fornecedor indicado: ${item.provider}\n`;
+      }
+
+      if (item.providerObservation) {
+        body += `OBS. FORNECEDOR: ${item.providerObservation}\n`;
+      }
+      
+      body += `\n\n`;
+    });
+
+    body += `Email gerado automaticamente pelo Sistema ESOM.\n`;
+
+    // 4. Abrir Outlook via mailto
+    // Encode components to ensure special characters work in URL
+    const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    window.location.href = mailtoLink;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-gray-900">
@@ -191,11 +167,11 @@ export default function App() {
             Requisição de Compra <span className="text-sky-500">ESOM</span>
           </h1>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl">
-            Preencha os dados abaixo para gerar o arquivo de e-mail da solicitação.
+            Preencha os dados abaixo e clique para abrir sua solicitação diretamente no Outlook.
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleOpenOutlook} className="space-y-8">
           
           {/* Section 1: Identification */}
           <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
@@ -457,20 +433,10 @@ export default function App() {
           <div className="flex justify-end pt-4 pb-12">
             <button
               type="submit"
-              disabled={loading}
-              className={`inline-flex items-center px-8 py-4 border border-transparent text-base font-medium rounded-lg shadow-lg text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all transform hover:-translate-y-0.5 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+              className="inline-flex items-center px-8 py-4 border border-transparent text-base font-medium rounded-lg shadow-lg text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all transform hover:-translate-y-0.5"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                  Gerando...
-                </>
-              ) : (
-                <>
-                  <Download className="-ml-1 mr-2 h-5 w-5" />
-                  Gerar Requisição (Outlook)
-                </>
-              )}
+              <Mail className="-ml-1 mr-2 h-5 w-5" />
+              Abrir no Outlook
             </button>
           </div>
         </form>
