@@ -19,10 +19,6 @@ export interface RequisitionItem {
   justification: string;
   buyerObservation: string;
   providerObservation: string;
-  
-  // UI State for files (not sent in JSON payload directly)
-  // We use 'any' here to simplify FileList interaction in the UI component state
-  files?: any; 
 }
 
 export interface RequisitionForm {

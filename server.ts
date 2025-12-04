@@ -1,8 +1,7 @@
+
 import express, { Request, Response } from 'express';
-import multer from 'multer';
 import nodemailer from 'nodemailer';
 import cors from 'cors';
-import { Buffer } from 'buffer';
 
 // --- Types ---
 interface RequisitionItem {
@@ -30,21 +29,9 @@ interface RequisitionPayload {
   items: RequisitionItem[];
 }
 
-// Define MulterFile interface to avoid missing Express namespace issues
-interface MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  buffer: Buffer;
-  size: number;
-}
-
 // --- Configuration ---
 const PORT = 3000;
 const app = express();
-// Use Memory Storage for consistency with Vercel function
-const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors());
 app.use(express.json());
@@ -58,27 +45,18 @@ const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_ATALAIA_OI': 'ivone.andrade@engie.com',
 };
 
-// --- Mail Transporter Setup ---
+// --- Mail Transporter (Stream) ---
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER || 'ethereal_user',
-    pass: process.env.SMTP_PASS || 'ethereal_pass',
-  },
+  streamTransport: true,
+  newline: 'windows',
+  buffer: true
 });
 
 // --- Helper: Generate HTML Table ---
-const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: string, originalname: string}[]) => {
+const generateHtmlBody = (data: RequisitionPayload) => {
   let itemsHtml = '';
   
   data.items.forEach((item, index) => {
-    const itemFiles = filesInfo.filter(f => f.fieldname === `files_${index}`);
-    const fileListHtml = itemFiles.length > 0 
-        ? `<div style="margin-top:5px; font-size: 12px; color: #555;"><strong>Anexos:</strong> ${itemFiles.map(f => f.originalname).join(', ')}</div>`
-        : '';
-
     itemsHtml += `
       <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9;">
         <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">Item #${index + 1}</h3>
@@ -127,7 +105,6 @@ const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: strin
             <div style="background-color: #fee; padding: 5px; margin-top: 5px; font-size: 13px;">
                 <strong>Obs. Fornecedor:</strong> ${item.providerObservation || '-'}
             </div>
-             ${fileListHtml}
         </div>
       </div>
     `;
@@ -153,18 +130,12 @@ const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: strin
 };
 
 // --- Route: Submit ---
-app.post('/api/submit', upload.any(), async (req: Request, res: Response) => {
+app.post('/api/submit', async (req: Request, res: Response) => {
   try {
-    const rawData = req.body.data;
-    if (!rawData) {
-        res.status(400).json({ message: 'Dados do formulário ausentes.' });
-        return;
-    }
+    const data: RequisitionPayload = req.body;
 
-    const data: RequisitionPayload = JSON.parse(rawData);
-
-    if (!data.items || data.items.length === 0) {
-        res.status(400).json({ message: 'Nenhum item na requisição.' });
+    if (!data || !data.items || data.items.length === 0) {
+        res.status(400).json({ message: 'Dados inválidos.' });
         return;
     }
 
@@ -174,24 +145,21 @@ app.post('/api/submit', upload.any(), async (req: Request, res: Response) => {
         return;
     }
 
-    const files = req.files as unknown as MulterFile[];
-    const attachments = files?.map(file => ({
-      filename: file.originalname,
-      content: file.buffer // Use Buffer
-    })) || [];
-
     const mailOptions = {
       from: '"Sistema ESOM" <no-reply@esom-system.com>',
       to: recipientEmail,
       subject: `Solicitação de Requisição de Compra – ${data.requester} – ${data.location}`,
-      html: generateHtmlBody(data, files || []),
-      attachments: attachments,
+      html: generateHtmlBody(data),
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: %s', info.messageId);
-
-    res.status(200).json({ message: 'Requisição enviada com sucesso!', messageId: info.messageId });
+    const info: any = await transporter.sendMail(mailOptions);
+    
+    // Set headers for file download
+    const filename = `Requisicao_${data.requester.replace(/\s+/g, '_')}.eml`;
+    res.setHeader('Content-Type', 'message/rfc822');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    res.send(info.message);
 
   } catch (error) {
     console.error('Server error:', error);

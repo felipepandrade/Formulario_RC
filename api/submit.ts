@@ -1,7 +1,6 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import multer from 'multer';
 import nodemailer from 'nodemailer';
-import { Buffer } from 'buffer';
 
 // --- Types (Shared) ---
 interface RequisitionItem {
@@ -29,16 +28,6 @@ interface RequisitionPayload {
   items: RequisitionItem[];
 }
 
-// Define MulterFile interface to avoid missing Express namespace issues
-interface MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  buffer: Buffer;
-  size: number;
-}
-
 // --- Email Mapping ---
 const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_CATU_OI': 'tatiana.ribeiro@engie.com',
@@ -48,43 +37,20 @@ const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_ATALAIA_OI': 'ivone.andrade@engie.com',
 };
 
-// --- Mail Transporter ---
-// Note: In a real Vercel env, use environment variables for secure credentials
+// --- Mail Transporter (Stream) ---
+// We use streamTransport to generate the email raw source (RFC822) 
+// instead of sending it via SMTP.
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER || 'ethereal_user',
-    pass: process.env.SMTP_PASS || 'ethereal_pass',
-  },
+  streamTransport: true,
+  newline: 'windows', // Important for Outlook
+  buffer: true
 });
 
-// --- Multer Setup for Memory Storage (Serverless friendly) ---
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Helper to run middleware in Vercel
-function runMiddleware(req: any, res: any, fn: any) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
-
 // --- HTML Generator ---
-const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: string, originalname: string}[]) => {
+const generateHtmlBody = (data: RequisitionPayload) => {
   let itemsHtml = '';
   
   data.items.forEach((item, index) => {
-    const itemFiles = filesInfo.filter(f => f.fieldname === `files_${index}`);
-    const fileListHtml = itemFiles.length > 0 
-        ? `<div style="margin-top:5px; font-size: 12px; color: #555;"><strong>Anexos:</strong> ${itemFiles.map(f => f.originalname).join(', ')}</div>`
-        : '';
-
     itemsHtml += `
       <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9;">
         <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">Item #${index + 1}</h3>
@@ -133,7 +99,6 @@ const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: strin
             <div style="background-color: #fee; padding: 5px; margin-top: 5px; font-size: 13px;">
                 <strong>Obs. Fornecedor:</strong> ${item.providerObservation || '-'}
             </div>
-             ${fileListHtml}
         </div>
       </div>
     `;
@@ -180,19 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Run Multer Middleware
-    await runMiddleware(req, res, upload.any());
-
-    // Access data (Req extended by Multer)
-    const anyReq = req as any;
-    const rawData = anyReq.body.data;
+    const data: RequisitionPayload = req.body;
     
-    if (!rawData) {
+    if (!data) {
       res.status(400).json({ message: 'Dados do formulário ausentes.' });
       return;
     }
-
-    const data: RequisitionPayload = JSON.parse(rawData);
 
     if (!data.items || data.items.length === 0) {
       res.status(400).json({ message: 'Nenhum item na requisição.' });
@@ -205,26 +163,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // Process Files from Memory
-    const files = anyReq.files as MulterFile[];
-    const attachments = files?.map(file => ({
-      filename: file.originalname,
-      content: file.buffer // Send buffer directly
-    })) || [];
-
-    // Send Email
+    // Prepare Email Options
     const mailOptions = {
       from: '"Sistema ESOM" <no-reply@esom-system.com>',
       to: recipientEmail,
       subject: `Solicitação de Requisição de Compra – ${data.requester} – ${data.location}`,
-      html: generateHtmlBody(data, files || []),
-      attachments: attachments,
+      html: generateHtmlBody(data),
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: %s', info.messageId);
-
-    res.status(200).json({ message: 'Requisição enviada com sucesso!', messageId: info.messageId });
+    // Generate EML (Stream)
+    const info: any = await transporter.sendMail(mailOptions);
+    
+    // Set headers for file download
+    const filename = `Requisicao_${data.requester.replace(/\s+/g, '_')}.eml`;
+    res.setHeader('Content-Type', 'message/rfc822');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Return the buffer/stream
+    res.status(200).send(info.message);
 
   } catch (error: any) {
     console.error('Server error:', error);

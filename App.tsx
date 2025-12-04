@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, Paperclip, Send, Loader2, AlertCircle, User, Package, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, Download, Loader2, AlertCircle, User, Package, FileText, CheckCircle } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
   LOCATIONS,
@@ -10,7 +11,7 @@ import {
   USAGE_INTENTS,
   RC_OBJECTIVES,
 } from './constants';
-import { Input, Select, TextArea, Label } from './components/InputFields';
+import { Input, Select, TextArea } from './components/InputFields';
 
 const initialItem: RequisitionItem = {
   id: '1',
@@ -30,7 +31,6 @@ const initialItem: RequisitionItem = {
   justification: '',
   buyerObservation: '',
   providerObservation: '',
-  files: null,
 };
 
 export default function App() {
@@ -60,10 +60,6 @@ export default function App() {
     if (items.length === 1) return;
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-  };
-
-  const handleFileChange = (index: number, files: FileList | null) => {
-    updateItem(index, 'files', files);
   };
 
   const validateForm = (): boolean => {
@@ -97,8 +93,6 @@ export default function App() {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      
       const itemsPayload = items.map((item) => {
         let finalBuyerObs = item.buyerObservation;
         if (item.provider && item.provider.trim() !== '') {
@@ -108,7 +102,6 @@ export default function App() {
         return {
           ...item,
           buyerObservation: finalBuyerObs,
-          files: undefined
         };
       });
 
@@ -118,41 +111,40 @@ export default function App() {
         items: itemsPayload,
       };
 
-      formData.append('data', JSON.stringify(payload));
-
-      items.forEach((item, index) => {
-        if (item.files) {
-          Array.from(item.files as any[]).forEach((file: any) => {
-            formData.append(`files_${index}`, file);
-          });
-        }
-      });
-
-      // Attempt to send data to backend
       try {
-        // Use relative path '/api/submit'. 
-        // Locally, Vite proxy handles this to localhost:3000.
-        // On Vercel, it hits the serverless function directly.
         const response = await fetch('/api/submit', {
             method: 'POST',
-            body: formData,
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Erro ao enviar requisição.');
+            throw new Error(errorData.message || 'Erro ao gerar arquivo de requisição.');
         }
-      } catch (networkError: any) {
-        if (networkError.message === 'Failed to fetch' || networkError.name === 'TypeError') {
-            console.warn('Backend unavailable. Simulating success for demo purposes.');
-            await new Promise(resolve => setTimeout(resolve, 1500));
-        } else {
-            throw networkError;
-        }
-      }
 
-      setSuccess(true);
-      window.scrollTo(0, 0);
+        // Get the response as a Blob (File)
+        const blob = await response.blob();
+        
+        // Create a download link and click it programmatically
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const fileName = `Requisicao_${requester.replace(/\s+/g, '_')}.eml`;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        setSuccess(true);
+        window.scrollTo(0, 0);
+
+      } catch (networkError: any) {
+         throw networkError;
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Falha na comunicação com o servidor.');
@@ -166,10 +158,14 @@ export default function App() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center border-t-4 border-sky-500">
           <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-            <Send className="h-8 w-8 text-green-600" />
+            <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sucesso!</h2>
-          <p className="text-gray-600 mb-8">Sua requisição foi gerada e enviada por e-mail para a base selecionada.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Arquivo Gerado!</h2>
+          <p className="text-gray-600 mb-8">
+             O arquivo <strong>.eml</strong> foi baixado no seu computador.
+             <br/><br/>
+             <span className="font-semibold text-sky-700">Abra-o no Outlook para revisar e enviar o e-mail.</span>
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="w-full bg-sky-600 text-white py-3 px-4 rounded-lg hover:bg-sky-700 transition shadow-md font-medium"
@@ -195,7 +191,7 @@ export default function App() {
             Requisição de Compra <span className="text-sky-500">ESOM</span>
           </h1>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl">
-            Preencha os dados abaixo para formalizar sua solicitação de compra de materiais ou serviços.
+            Preencha os dados abaixo para gerar o arquivo de e-mail da solicitação.
           </p>
         </header>
 
@@ -397,9 +393,9 @@ export default function App() {
                    {/* Divider */}
                    <div className="border-t border-gray-100"></div>
 
-                   {/* Justification & Attachments */}
-                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                       <div className="lg:col-span-2 space-y-4">
+                   {/* Justification & Observations */}
+                   <div className="grid grid-cols-1 gap-6">
+                       <div className="space-y-4">
                             <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">Justificativa & Observações</h4>
                             <TextArea 
                                 label="Justificativa Técnica" 
@@ -424,43 +420,6 @@ export default function App() {
                                     placeholder="Instruções para o fornecedor..."
                                     rows={2}
                                 />
-                            </div>
-                       </div>
-                       
-                       <div className="lg:col-span-1">
-                            <Label>Anexos do Item</Label>
-                            <div className="mt-1 border-2 border-gray-300 border-dashed rounded-lg px-6 py-8 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center text-center h-full max-h-64">
-                                <Paperclip className="h-10 w-10 text-gray-400 mb-3" />
-                                <label
-                                    htmlFor={`file-upload-${index}`}
-                                    className="cursor-pointer bg-white rounded-md font-medium text-sky-600 hover:text-sky-500 focus-within:outline-none"
-                                >
-                                    <span>Selecionar Arquivos</span>
-                                    <input 
-                                        id={`file-upload-${index}`}
-                                        name={`file-upload-${index}`} 
-                                        type="file" 
-                                        className="sr-only" 
-                                        multiple 
-                                        onChange={(e) => handleFileChange(index, e.target.files)}
-                                        accept=".pdf,image/*,.txt,.doc,.docx"
-                                    />
-                                </label>
-                                <p className="text-xs text-gray-500 mt-2">PDF, PNG, JPG, DOC</p>
-                                
-                                {item.files && item.files.length > 0 && (
-                                    <div className="mt-4 w-full text-left overflow-hidden">
-                                        <p className="font-semibold text-xs text-gray-700 mb-1">Arquivos:</p>
-                                        <ul className="text-xs text-gray-500 space-y-1">
-                                            {Array.from(item.files as any[]).map((f: any, i) => (
-                                            <li key={i} className="truncate flex items-center">
-                                                <span className="w-1.5 h-1.5 bg-sky-500 rounded-full mr-2"></span>
-                                                {f.name}
-                                            </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
                             </div>
                        </div>
                    </div>
@@ -504,12 +463,12 @@ export default function App() {
               {loading ? (
                 <>
                   <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                  Processando envio...
+                  Gerando...
                 </>
               ) : (
                 <>
-                  <Send className="-ml-1 mr-2 h-5 w-5" />
-                  Enviar Requisição
+                  <Download className="-ml-1 mr-2 h-5 w-5" />
+                  Gerar Requisição (Outlook)
                 </>
               )}
             </button>
