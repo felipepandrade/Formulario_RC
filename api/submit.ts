@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
+import { Buffer } from 'buffer';
 
 // --- Types (Shared) ---
 interface RequisitionItem {

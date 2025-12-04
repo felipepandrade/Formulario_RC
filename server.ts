@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
 import cors from 'cors';
+import { Buffer } from 'buffer';
 
 // --- Types ---
 interface RequisitionItem {
