@@ -13,6 +13,7 @@ import {
   EMAIL_MAPPING,
 } from './constants';
 import { Input, Select, TextArea } from './components/InputFields';
+import { EngieLogo } from './components/Logo';
 
 const initialItem: RequisitionItem = {
   id: '1',
@@ -158,11 +159,7 @@ export default function App() {
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <header className="flex flex-col items-center justify-center text-center">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Engie_logo.svg/800px-Engie_logo.svg.png" 
-            alt="ENGIE Logo" 
-            className="h-24 mb-6 object-contain"
-          />
+          <EngieLogo className="h-20 mb-6 w-auto" />
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
             Requisição de Compra <span className="text-sky-500">ESOM</span>
           </h1>
