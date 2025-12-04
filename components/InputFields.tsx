@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface BaseProps {
@@ -27,7 +28,7 @@ export const Input: React.FC<InputProps> = ({ label, error, required, className 
   <div className="mb-4">
     <Label required={required}>{label}</Label>
     <input
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2 ${error ? 'border-red-500' : ''} ${className}`}
+      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
       {...props}
     />
     <ErrorMsg message={error} />
@@ -38,11 +39,11 @@ export const Select: React.FC<SelectProps> = ({ label, error, required, options,
   <div className="mb-4">
     <Label required={required}>{label}</Label>
     <select
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2 bg-white ${error ? 'border-red-500' : ''} ${className}`}
+      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
       {...props}
     >
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
+        <option key={opt.value} value={opt.value} className="text-gray-900">
           {opt.label}
         </option>
       ))}
@@ -55,7 +56,7 @@ export const TextArea: React.FC<TextAreaProps> = ({ label, error, required, clas
   <div className="mb-4">
     <Label required={required}>{label}</Label>
     <textarea
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2 ${error ? 'border-red-500' : ''} ${className}`}
+      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
       {...props}
     />
     <ErrorMsg message={error} />

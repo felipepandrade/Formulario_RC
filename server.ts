@@ -1,3 +1,4 @@
+
 import express, { Request, Response } from 'express';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
@@ -5,7 +6,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 
-// --- Types (Duplicated from frontend just for standalone server execution safety) ---
+// --- Types ---
 interface RequisitionItem {
   itemCode: string;
   description: string;
@@ -20,14 +21,16 @@ interface RequisitionItem {
   subInventory?: string;
   usageIntent: string;
   objective: string;
+  
+  // Per Item Fields
+  justification: string;
+  buyerObservation: string;
+  providerObservation: string;
 }
 
 interface RequisitionPayload {
   requester: string;
   location: string;
-  justification: string;
-  buyerObservation: string;
-  providerObservation: string;
   items: RequisitionItem[];
 }
 
@@ -49,8 +52,6 @@ const EMAIL_MAPPING: Record<string, string> = {
 };
 
 // --- Mail Transporter Setup ---
-// NOTE: For development, use Ethereal or specific SMTP settings.
-// This example assumes a generic SMTP service. You must configure environment variables.
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.ethereal.email',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -62,19 +63,25 @@ const transporter = nodemailer.createTransport({
 });
 
 // --- Helper: Generate HTML Table ---
-const generateHtmlBody = (data: RequisitionPayload) => {
+const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: string, originalname: string}[]) => {
   let itemsHtml = '';
   
   data.items.forEach((item, index) => {
+    // Find files belonging to this item (based on fieldname convention files_0, files_1...)
+    const itemFiles = filesInfo.filter(f => f.fieldname === `files_${index}`);
+    const fileListHtml = itemFiles.length > 0 
+        ? `<div style="margin-top:5px; font-size: 12px; color: #555;"><strong>Anexos:</strong> ${itemFiles.map(f => f.originalname).join(', ')}</div>`
+        : '';
+
     itemsHtml += `
       <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9;">
-        <h3 style="margin-top: 0;">Item #${index + 1}</h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">Item #${index + 1}</h3>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
-            <td style="padding: 5px; font-weight: bold;">Código:</td>
-            <td>${item.itemCode || 'A DEFINIR'}</td>
-            <td style="padding: 5px; font-weight: bold;">Quantidade:</td>
-            <td>${item.quantity}</td>
+            <td style="padding: 5px; font-weight: bold; width: 15%;">Código:</td>
+            <td style="width: 35%;">${item.itemCode || 'A DEFINIR'}</td>
+            <td style="padding: 5px; font-weight: bold; width: 15%;">Quantidade:</td>
+            <td style="width: 35%;">${item.quantity}</td>
           </tr>
           <tr>
             <td style="padding: 5px; font-weight: bold;">Descrição:</td>
@@ -105,6 +112,17 @@ const generateHtmlBody = (data: RequisitionPayload) => {
              <td>${item.usageIntent}</td>
           </tr>
         </table>
+
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc;">
+            <p style="margin: 5px 0;"><strong>Justificativa:</strong><br/>${item.justification}</p>
+            <div style="background-color: #eef; padding: 5px; margin-top: 5px; font-size: 13px;">
+                <strong>Obs. Comprador:</strong> ${item.buyerObservation || '-'}
+            </div>
+            <div style="background-color: #fee; padding: 5px; margin-top: 5px; font-size: 13px;">
+                <strong>Obs. Fornecedor:</strong> ${item.providerObservation || '-'}
+            </div>
+             ${fileListHtml}
+        </div>
       </div>
     `;
   });
@@ -112,25 +130,13 @@ const generateHtmlBody = (data: RequisitionPayload) => {
   return `
     <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
-        <h2>Solicitação de Requisição de Compra</h2>
+        <h2 style="color: #0056b3;">Solicitação de Requisição de Compra</h2>
         <p><strong>Solicitante:</strong> ${data.requester}</p>
         <p><strong>Base/Local:</strong> ${data.location}</p>
         <hr />
         
         <h3>Itens Solicitados</h3>
         ${itemsHtml}
-        
-        <hr />
-        <h3>Detalhes Gerais</h3>
-        <p><strong>Justificativa:</strong><br/>${data.justification}</p>
-        
-        <div style="background-color: #eef; padding: 10px; margin-top: 10px;">
-          <p><strong>Observação ao Comprador:</strong><br/>${data.buyerObservation || 'N/A'}</p>
-        </div>
-        
-        <div style="background-color: #fee; padding: 10px; margin-top: 10px;">
-          <p><strong>Observação ao Fornecedor:</strong><br/>${data.providerObservation || 'N/A'}</p>
-        </div>
         
         <p style="font-size: 12px; color: #888; margin-top: 30px;">
           Email gerado automaticamente pelo Sistema ESOM.
@@ -141,7 +147,7 @@ const generateHtmlBody = (data: RequisitionPayload) => {
 };
 
 // --- Route: Submit ---
-app.post('/api/submit', upload.array('files'), async (req: Request, res: Response) => {
+app.post('/api/submit', upload.any(), async (req: Request, res: Response) => {
   try {
     // 1. Parse Data
     const rawData = req.body.data;
@@ -152,7 +158,7 @@ app.post('/api/submit', upload.array('files'), async (req: Request, res: Respons
 
     const data: RequisitionPayload = JSON.parse(rawData);
 
-    // 2. Validate essential logic (Backend Double Check)
+    // 2. Validate essential logic
     if (!data.items || data.items.length === 0) {
         res.status(400).json({ message: 'Nenhum item na requisição.' });
         return;
@@ -166,7 +172,10 @@ app.post('/api/submit', upload.array('files'), async (req: Request, res: Respons
     }
 
     // 4. Prepare Attachments
-    const files = req.files as any[];
+    const files = req.files as any[]; // Multer attaches array of files here with upload.any()
+    
+    // We send all files as attachments. 
+    // The HTML body generation will group them visually by name using the fieldname property.
     const attachments = files?.map(file => ({
       filename: file.originalname,
       path: file.path
@@ -177,7 +186,7 @@ app.post('/api/submit', upload.array('files'), async (req: Request, res: Respons
       from: '"Sistema ESOM" <no-reply@esom-system.com>',
       to: recipientEmail,
       subject: `Solicitação de Requisição de Compra – ${data.requester} – ${data.location}`,
-      html: generateHtmlBody(data),
+      html: generateHtmlBody(data, files || []),
       attachments: attachments,
     };
 
