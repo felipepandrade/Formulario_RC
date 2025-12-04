@@ -1,0 +1,5 @@
+{
+  "name": "ESOM Purchase Requisitions",
+  "description": "Sistema web para elaboração de Requisições de Compra (RC) da gerência ESOM com suporte a múltiplos itens e anexos.",
+  "requestFramePermissions": []
+}
