@@ -130,7 +130,10 @@ export default function App() {
 
       // Attempt to send data to backend
       try {
-        const response = await fetch('http://localhost:3000/api/submit', {
+        // Use relative path '/api/submit'. 
+        // Locally, Vite proxy handles this to localhost:3000.
+        // On Vercel, it hits the serverless function directly.
+        const response = await fetch('/api/submit', {
             method: 'POST',
             body: formData,
         });
@@ -140,13 +143,11 @@ export default function App() {
             throw new Error(errorData.message || 'Erro ao enviar requisição.');
         }
       } catch (networkError: any) {
-        // If the backend is not running (common in preview environments), we catch the 'Failed to fetch' error
-        // and simulate a success to allow the user to see the success screen.
         if (networkError.message === 'Failed to fetch' || networkError.name === 'TypeError') {
-            console.warn('Backend unavailable (Failed to fetch). Simulating success for demo purposes.');
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+            console.warn('Backend unavailable. Simulating success for demo purposes.');
+            await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
-            throw networkError; // Re-throw real errors (validation, etc.)
+            throw networkError;
         }
       }
 
@@ -154,7 +155,7 @@ export default function App() {
       window.scrollTo(0, 0);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Falha na comunicação com o servidor. Verifique se o backend está rodando.');
+      setError(err.message || 'Falha na comunicação com o servidor.');
     } finally {
       setLoading(false);
     }

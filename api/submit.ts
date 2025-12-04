@@ -1,9 +1,8 @@
-import express, { Request, Response } from 'express';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
-import cors from 'cors';
 
-// --- Types ---
+// --- Types (Shared) ---
 interface RequisitionItem {
   itemCode: string;
   description: string;
@@ -39,15 +38,6 @@ interface MulterFile {
   size: number;
 }
 
-// --- Configuration ---
-const PORT = 3000;
-const app = express();
-// Use Memory Storage for consistency with Vercel function
-const upload = multer({ storage: multer.memoryStorage() });
-
-app.use(cors());
-app.use(express.json());
-
 // --- Email Mapping ---
 const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_CATU_OI': 'tatiana.ribeiro@engie.com',
@@ -57,7 +47,8 @@ const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_ATALAIA_OI': 'ivone.andrade@engie.com',
 };
 
-// --- Mail Transporter Setup ---
+// --- Mail Transporter ---
+// Note: In a real Vercel env, use environment variables for secure credentials
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.ethereal.email',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -68,7 +59,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// --- Helper: Generate HTML Table ---
+// --- Multer Setup for Memory Storage (Serverless friendly) ---
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Helper to run middleware in Vercel
+function runMiddleware(req: any, res: any, fn: any) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+}
+
+// --- HTML Generator ---
 const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: string, originalname: string}[]) => {
   let itemsHtml = '';
   
@@ -151,34 +157,61 @@ const generateHtmlBody = (data: RequisitionPayload, filesInfo: {fieldname: strin
   `;
 };
 
-// --- Route: Submit ---
-app.post('/api/submit', upload.any(), async (req: Request, res: Response) => {
+// --- Handler ---
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS configuration
+  res.setHeader('Access-Control-Allow-Credentials', "true");
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ message: 'Method Not Allowed' });
+    return;
+  }
+
   try {
-    const rawData = req.body.data;
+    // Run Multer Middleware
+    await runMiddleware(req, res, upload.any());
+
+    // Access data (Req extended by Multer)
+    const anyReq = req as any;
+    const rawData = anyReq.body.data;
+    
     if (!rawData) {
-        res.status(400).json({ message: 'Dados do formulário ausentes.' });
-        return;
+      res.status(400).json({ message: 'Dados do formulário ausentes.' });
+      return;
     }
 
     const data: RequisitionPayload = JSON.parse(rawData);
 
     if (!data.items || data.items.length === 0) {
-        res.status(400).json({ message: 'Nenhum item na requisição.' });
-        return;
+      res.status(400).json({ message: 'Nenhum item na requisição.' });
+      return;
     }
 
     const recipientEmail = EMAIL_MAPPING[data.location];
     if (!recipientEmail) {
-        res.status(400).json({ message: 'Local de entrega inválido ou sem email configurado.' });
-        return;
+      res.status(400).json({ message: 'Local de entrega inválido ou sem email configurado.' });
+      return;
     }
 
-    const files = req.files as unknown as MulterFile[];
+    // Process Files from Memory
+    const files = anyReq.files as MulterFile[];
     const attachments = files?.map(file => ({
       filename: file.originalname,
-      content: file.buffer // Use Buffer
+      content: file.buffer // Send buffer directly
     })) || [];
 
+    // Send Email
     const mailOptions = {
       from: '"Sistema ESOM" <no-reply@esom-system.com>',
       to: recipientEmail,
@@ -192,12 +225,8 @@ app.post('/api/submit', upload.any(), async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Requisição enviada com sucesso!', messageId: info.messageId });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Server error:', error);
-    res.status(500).json({ message: 'Erro interno no servidor.' });
+    res.status(500).json({ message: 'Erro interno no servidor.', details: error.message });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`ESOM Server running on http://localhost:${PORT}`);
-});
+}
