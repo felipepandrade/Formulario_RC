@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string }) => {
   // Tenta carregar do seu repositório primeiro

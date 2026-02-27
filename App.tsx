@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, Mail, AlertCircle, User, Package, FileText, Send } from 'lucide-react';
+import { PlusCircle, Trash2, Mail, AlertCircle, User, Package, FileText } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
   LOCATIONS,
@@ -21,6 +21,7 @@ const initialItem: RequisitionItem = {
   description: '',
   quantity: 1,
   price: 0,
+  usageLocation: '',
   originType: 'Selecione',
   agreementType: 'Selecione',
   agreement: '',
@@ -114,6 +115,7 @@ export default function App() {
       body += `QUANTIDADE: ${item.quantity}\n`;
       body += `PREÇO EST.: R$ ${item.price.toFixed(2)}\n`;
       body += `OS: ${item.osNumber || 'N/A'}\n`;
+      if (item.usageLocation) body += `LOCAL DE UTILIZAÇÃO: ${item.usageLocation}\n`;
       
       body += `\n--- ORIGEM & ACORDO ---\n`;
       body += `ORIGEM: ${item.originType}\n`;
@@ -272,6 +274,15 @@ export default function App() {
                             value={item.osNumber || ''} 
                             onChange={(e) => updateItem(index, 'osNumber', e.target.value)} 
                             placeholder="Se houver"
+                        />
+                   </div>
+
+                   <div className="grid grid-cols-1 gap-6">
+                        <Input 
+                            label="Local de Utilização - Nome da Instalação/Gasoduto" 
+                            value={item.usageLocation || ''} 
+                            onChange={(e) => updateItem(index, 'usageLocation', e.target.value)} 
+                            placeholder="Ex: Gasoduto X, Instalação Y..."
                         />
                    </div>
 

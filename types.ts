@@ -5,6 +5,7 @@ export interface RequisitionItem {
   description: string;
   quantity: number;
   price: number;
+  usageLocation: string; // Local de Utilização - Nome da Instalação/Gasoduto
   originType: string;
   agreementType: string;
   agreement?: string;
