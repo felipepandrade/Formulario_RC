@@ -7,11 +7,18 @@ interface BaseProps {
   required?: boolean;
 }
 
-interface InputProps extends BaseProps, React.InputHTMLAttributes<HTMLInputElement> {}
+interface InputProps extends BaseProps, React.InputHTMLAttributes<HTMLInputElement> {
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  step?: string;
+}
 interface SelectProps extends BaseProps, React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { label: string; value: string }[];
 }
-interface TextAreaProps extends BaseProps, React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+interface TextAreaProps extends BaseProps, React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  maxLength?: number;
+}
 
 export const Label: React.FC<{ children: React.ReactNode; required?: boolean }> = ({ children, required }) => (
   <label className="block text-sm font-medium text-gray-700 mb-1">
