@@ -211,7 +211,7 @@ export default function App() {
                 key={item.id}
                 item={item}
                 index={index}
-                totalItems={items.length}
+                canRemove={items.length > 1}
                 updateItem={updateItem}
                 removeItem={removeItem}
              />
