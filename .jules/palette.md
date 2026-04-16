@@ -1,0 +1,3 @@
+## 2026-04-16 - Form Label Accessibility
+**Learning:** Custom input components (`Input`, `Select`, `TextArea`) were using visual labels but lacking programmatic `htmlFor`/`id` associations, rendering them inaccessible to screen readers and preventing click-to-focus behavior.
+**Action:** Always use `React.useId()` in generic form components to automatically generate and link unique `id`s for inputs and their corresponding `label`s, ensuring robust a11y without requiring manual ID prop passing.
