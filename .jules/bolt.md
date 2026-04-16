@@ -1,3 +1,3 @@
-## 2026-04-15 - Prevent O(N) list re-renders
-**Learning:** In complex React forms rendering many large sub-items, inline components or mapping inside the parent leads to O(N) re-renders for every keystroke. Extracting list items to a separate component and using React.memo() along with stable useCallback references is crucial.
-**Action:** When encountering large lists of form items, always extract them to memoized components and ensure parent callback props are wrapped in useCallback with functional state updates.
+## 2026-04-16 - [Memoization Invalidation by Array Length Prop]
+**Learning:** Passing `items.length` to each memoized child component (`RequisitionItemCard`) invalidates the `React.memo` cache for *all* items whenever a new item is added or removed. Even though the actual component data didn't change, the `totalItems` prop changed for every instance, forcing an O(N) re-render instead of O(1).
+**Action:** Replace dynamic length props (like `totalItems`) with static boolean flags (like `canRemove={items.length > 1}`). Since `canRemove` remains `true` for all items (except when length goes from 2 to 1), adding a 3rd, 4th, or Nth item won't change the `canRemove` prop of existing items, preserving memoization.
