@@ -70,6 +70,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.itemCode}
               onChange={(e) => updateItem(index, 'itemCode', e.target.value)}
               placeholder="Opcional"
+              maxLength={50}
             />
           </div>
           <div className="md:col-span-9">
@@ -79,6 +80,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               onChange={(e) => updateItem(index, 'description', e.target.value)}
               placeholder="Descreva o material ou serviço com detalhes..."
               rows={2}
+              maxLength={1000}
               required
             />
           </div>
@@ -89,6 +91,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             label="Quantidade"
             type="number"
             step="0.01"
+            min={0.01}
             value={item.quantity}
             onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
             required
@@ -97,6 +100,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             label="Preço Unit. Estimado (R$)"
             type="number"
             step="0.01"
+            min={0.01}
             value={item.price}
             onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value))}
             required
@@ -106,6 +110,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             value={item.osNumber || ''}
             onChange={(e) => updateItem(index, 'osNumber', e.target.value)}
             placeholder="Se houver"
+            maxLength={50}
           />
         </div>
 
@@ -115,6 +120,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             value={item.usageLocation || ''}
             onChange={(e) => updateItem(index, 'usageLocation', e.target.value)}
             placeholder="Ex: Gasoduto X, Instalação Y..."
+            maxLength={200}
           />
         </div>
 
@@ -154,6 +160,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.agreement || ''}
               onChange={(e) => updateItem(index, 'agreement', e.target.value)}
               placeholder="Ex: AC288ESOM"
+              maxLength={100}
             />
           </div>
           <div className="mt-4">
@@ -162,6 +169,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.provider || ''}
               onChange={(e) => updateItem(index, 'provider', e.target.value)}
               placeholder="Nome do Fornecedor"
+              maxLength={150}
             />
           </div>
         </div>
@@ -219,6 +227,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               onChange={(e) => updateItem(index, 'justification', e.target.value)}
               placeholder="Explique a necessidade, aplicação e impacto..."
               rows={4}
+              maxLength={1000}
               required
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -228,6 +237,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
                 onChange={(e) => updateItem(index, 'buyerObservation', e.target.value)}
                 placeholder="Instruções para compras..."
                 rows={2}
+                maxLength={500}
               />
               <TextArea
                 label="Obs. ao Fornecedor"
@@ -235,6 +245,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
                 onChange={(e) => updateItem(index, 'providerObservation', e.target.value)}
                 placeholder="Instruções para o fornecedor..."
                 rows={2}
+                maxLength={500}
               />
             </div>
           </div>

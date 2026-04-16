@@ -71,8 +71,8 @@ export default function App() {
       const prefix = items.length > 1 ? `Item ${i + 1}: ` : '';
       
       if (!item.description.trim()) { setError(`${prefix}Descrição é obrigatória.`); return false; }
-      if (item.quantity <= 0) { setError(`${prefix}Quantidade deve ser maior que 0.`); return false; }
-      if (item.price <= 0) { setError(`${prefix}Preço é obrigatório.`); return false; }
+      if (isNaN(item.quantity) || item.quantity <= 0) { setError(`${prefix}Quantidade deve ser maior que 0.`); return false; }
+      if (isNaN(item.price) || item.price <= 0) { setError(`${prefix}Preço é obrigatório.`); return false; }
       if (item.originType === 'Selecione') { setError(`${prefix}Tipo de Origem é obrigatório.`); return false; }
       if (item.agreementType === 'Selecione') { setError(`${prefix}Tipo de Acordo é obrigatório.`); return false; }
       if (item.destinationType === 'Selecione') { setError(`${prefix}Tipo de Destino é obrigatório.`); return false; }
@@ -157,6 +157,12 @@ export default function App() {
     // Encode components to ensure special characters work in URL
     const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
+    // Check link length to prevent silent failures in browser/email clients (typically maxes around ~2000 chars)
+    if (mailtoLink.length > 2000) {
+      setError('A solicitação é muito grande para ser enviada por e-mail. Por favor, reduza o número de itens ou o tamanho das descrições.');
+      return;
+    }
+
     window.location.href = mailtoLink;
   };
 
@@ -193,6 +199,7 @@ export default function App() {
                   value={requester} 
                   onChange={(e) => setRequester(e.target.value)} 
                   placeholder="Nome Completo" 
+                  maxLength={100}
                   required 
                 />
                 <Select 
