@@ -100,53 +100,58 @@ export default function App() {
     const subject = `Solicitação de Requisição de Compra – ${requester} – ${location}`;
 
     // 3. Montar Corpo do E-mail (Texto Puro Formatado)
-    let body = `SOLICITAÇÃO DE REQUISIÇÃO DE COMPRA\n`;
-    body += `--------------------------------------------------\n`;
-    body += `SOLICITANTE: ${requester}\n`;
-    body += `LOCAL DE ENTREGA: ${location}\n`;
-    body += `--------------------------------------------------\n\n`;
+    // Optimization: Using an array to collect string parts and joining them at the end.
+    // This avoids multiple string allocations and copies in each iteration of the loop,
+    // which can lead to better memory efficiency and performance as the number of items grows.
+    const bodyParts: string[] = [];
+    bodyParts.push(`SOLICITAÇÃO DE REQUISIÇÃO DE COMPRA\n`);
+    bodyParts.push(`--------------------------------------------------\n`);
+    bodyParts.push(`SOLICITANTE: ${requester}\n`);
+    bodyParts.push(`LOCAL DE ENTREGA: ${location}\n`);
+    bodyParts.push(`--------------------------------------------------\n\n`);
 
     items.forEach((item, index) => {
-      body += `================ ITEM #${index + 1} ================\n`;
-      body += `CÓDIGO: ${item.itemCode || 'A DEFINIR'}\n`;
-      body += `DESCRIÇÃO:\n${item.description}\n\n`;
+      bodyParts.push(`================ ITEM #${index + 1} ================\n`);
+      bodyParts.push(`CÓDIGO: ${item.itemCode || 'A DEFINIR'}\n`);
+      bodyParts.push(`DESCRIÇÃO:\n${item.description}\n\n`);
       
-      body += `QUANTIDADE: ${item.quantity}\n`;
-      body += `PREÇO EST.: R$ ${item.price.toFixed(2)}\n`;
-      body += `OS: ${item.osNumber || 'N/A'}\n`;
-      if (item.usageLocation) body += `LOCAL DE UTILIZAÇÃO: ${item.usageLocation}\n`;
+      bodyParts.push(`QUANTIDADE: ${item.quantity}\n`);
+      bodyParts.push(`PREÇO EST.: R$ ${item.price.toFixed(2)}\n`);
+      bodyParts.push(`OS: ${item.osNumber || 'N/A'}\n`);
+      if (item.usageLocation) bodyParts.push(`LOCAL DE UTILIZAÇÃO: ${item.usageLocation}\n`);
       
-      body += `\n--- ORIGEM & ACORDO ---\n`;
-      body += `ORIGEM: ${item.originType}\n`;
-      body += `TIPO ACORDO: ${item.agreementType}\n`;
-      if (item.agreement) body += `ACORDO: ${item.agreement}\n`;
-      if (item.provider) body += `FORNECEDOR: ${item.provider}\n`;
+      bodyParts.push(`\n--- ORIGEM & ACORDO ---\n`);
+      bodyParts.push(`ORIGEM: ${item.originType}\n`);
+      bodyParts.push(`TIPO ACORDO: ${item.agreementType}\n`);
+      if (item.agreement) bodyParts.push(`ACORDO: ${item.agreement}\n`);
+      if (item.provider) bodyParts.push(`FORNECEDOR: ${item.provider}\n`);
 
-      body += `\n--- CLASSIFICAÇÃO & DESTINO ---\n`;
-      body += `OBJETIVO: ${item.objective}\n`;
-      body += `USO PRETENDIDO: ${item.usageIntent}\n`;
-      body += `TIPO DESTINO: ${item.destinationType}\n`;
-      if (item.subInventory) body += `SUBINVENTÁRIO: ${item.subInventory}\n`;
+      bodyParts.push(`\n--- CLASSIFICAÇÃO & DESTINO ---\n`);
+      bodyParts.push(`OBJETIVO: ${item.objective}\n`);
+      bodyParts.push(`USO PRETENDIDO: ${item.usageIntent}\n`);
+      bodyParts.push(`TIPO DESTINO: ${item.destinationType}\n`);
+      if (item.subInventory) bodyParts.push(`SUBINVENTÁRIO: ${item.subInventory}\n`);
 
-      body += `\n--- JUSTIFICATIVA ---\n`;
-      body += `${item.justification}\n`;
+      bodyParts.push(`\n--- JUSTIFICATIVA ---\n`);
+      bodyParts.push(`${item.justification}\n`);
 
       if (item.buyerObservation) {
-        body += `\nOBS. COMPRADOR: ${item.buyerObservation}`;
-        if (item.provider) body += ` (Fornecedor indicado: ${item.provider})`;
-        body += `\n`;
+        bodyParts.push(`\nOBS. COMPRADOR: ${item.buyerObservation}`);
+        if (item.provider) bodyParts.push(` (Fornecedor indicado: ${item.provider})`);
+        bodyParts.push(`\n`);
       } else if (item.provider) {
-         body += `\nOBS. COMPRADOR: Fornecedor indicado: ${item.provider}\n`;
+         bodyParts.push(`\nOBS. COMPRADOR: Fornecedor indicado: ${item.provider}\n`);
       }
 
       if (item.providerObservation) {
-        body += `OBS. FORNECEDOR: ${item.providerObservation}\n`;
+        bodyParts.push(`OBS. FORNECEDOR: ${item.providerObservation}\n`);
       }
       
-      body += `\n\n`;
+      bodyParts.push(`\n\n`);
     });
 
-    body += `Email gerado automaticamente pelo Sistema ESOM.\n`;
+    bodyParts.push(`Email gerado automaticamente pelo Sistema ESOM.\n`);
+    const body = bodyParts.join('');
 
     // 4. Abrir Outlook via mailto
     // Encode components to ensure special characters work in URL
