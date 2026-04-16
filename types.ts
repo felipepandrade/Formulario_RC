@@ -21,16 +21,3 @@ export interface RequisitionItem {
   buyerObservation: string;
   providerObservation: string;
 }
-
-export interface RequisitionForm {
-  requester: string;
-  location: string;
-  items: RequisitionItem[];
-}
-
-// For API Payload structure
-export interface RequisitionPayload {
-  requester: string;
-  location: string;
-  items: RequisitionItem[];
-}
