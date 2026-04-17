@@ -14,7 +14,7 @@ import {
 interface RequisitionItemCardProps {
   item: RequisitionItem;
   index: number;
-  totalItems: number;
+  canRemove: boolean;
   updateItem: (index: number, field: keyof RequisitionItem, value: any) => void;
   removeItem: (index: number) => void;
 }
@@ -22,10 +22,15 @@ interface RequisitionItemCardProps {
 // ⚡ Bolt Optimization: Extracted item to a separate component and wrapped in React.memo()
 // This prevents expensive O(N) re-renders of the entire item list when typing in a single input field.
 // Expected Impact: Eliminates typing lag on large lists. Editing one item now takes O(1) render time instead of O(N).
+
+// ⚡ Bolt Optimization: Replaced totalItems: number with canRemove: boolean
+// This prevents invalidating React.memo cache for all existing items when a new item is added.
+// Because canRemove is typically true for all items, adding an Nth item doesn't change the props of items 1 to N-1.
+// Expected Impact: Adding/removing items becomes an O(1) operation for existing items rather than triggering O(N) re-renders.
 const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
   item,
   index,
-  totalItems,
+  canRemove,
   updateItem,
   removeItem,
 }) => {
@@ -44,7 +49,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             </p>
           </div>
         </div>
-        {totalItems > 1 && (
+        {canRemove && (
           <button
             type="button"
             onClick={() => removeItem(index)}

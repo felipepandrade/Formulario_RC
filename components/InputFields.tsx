@@ -31,7 +31,7 @@ export const ErrorMsg: React.FC<{ message?: string }> = ({ message }) => {
   return <p className="mt-1 text-sm text-red-600">{message}</p>;
 };
 
-export const Input: React.FC<InputProps> = ({ label, error, required, className = '', ...props }) => (
+export const Input = React.memo<InputProps>(({ label, error, required, className = '', ...props }) => (
   <div className="mb-4">
     <Label required={required}>{label}</Label>
     <input
@@ -40,9 +40,9 @@ export const Input: React.FC<InputProps> = ({ label, error, required, className 
     />
     <ErrorMsg message={error} />
   </div>
-);
+));
 
-export const Select: React.FC<SelectProps> = ({ label, error, required, options, className = '', ...props }) => (
+export const Select = React.memo<SelectProps>(({ label, error, required, options, className = '', ...props }) => (
   <div className="mb-4">
     <Label required={required}>{label}</Label>
     <select
@@ -57,9 +57,9 @@ export const Select: React.FC<SelectProps> = ({ label, error, required, options,
     </select>
     <ErrorMsg message={error} />
   </div>
-);
+));
 
-export const TextArea: React.FC<TextAreaProps> = ({ label, error, required, className = '', ...props }) => (
+export const TextArea = React.memo<TextAreaProps>(({ label, error, required, className = '', ...props }) => (
   <div className="mb-4">
     <Label required={required}>{label}</Label>
     <textarea
@@ -68,4 +68,4 @@ export const TextArea: React.FC<TextAreaProps> = ({ label, error, required, clas
     />
     <ErrorMsg message={error} />
   </div>
-);
+));
