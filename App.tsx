@@ -156,6 +156,12 @@ export default function App() {
     // Encode components to ensure special characters work in URL
     const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
+    // Security Fix: Prevent silent DoS / data truncation in mail clients due to URL length limits
+    if (mailtoLink.length > 2000) {
+      setError('O tamanho da solicitação excede o limite do cliente de e-mail. Por favor, reduza a quantidade de itens ou o tamanho das descrições.');
+      return;
+    }
+
     window.location.href = mailtoLink;
   };
 
