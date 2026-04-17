@@ -24,7 +24,7 @@ export const ErrorMsg: React.FC<{ message?: string; id?: string }> = ({ message,
   return <p id={id} className="mt-1 text-sm text-red-600">{message}</p>;
 };
 
-export const Input: React.FC<InputProps> = ({ label, error, required, className = '', id, ...props }) => {
+export const Input = React.memo<InputProps>(({ label, error, required, className = '', id, ...props }) => {
   const generatedId = React.useId();
   const inputId = id || generatedId;
   const errorId = `${inputId}-error`;
@@ -41,9 +41,9 @@ export const Input: React.FC<InputProps> = ({ label, error, required, className 
       <ErrorMsg id={errorId} message={error} />
     </div>
   );
-};
+});
 
-export const Select: React.FC<SelectProps> = ({ label, error, required, options, className = '', id, ...props }) => {
+export const Select = React.memo<SelectProps>(({ label, error, required, options, className = '', id, ...props }) => {
   const generatedId = React.useId();
   const selectId = id || generatedId;
   const errorId = `${selectId}-error`;
@@ -66,9 +66,9 @@ export const Select: React.FC<SelectProps> = ({ label, error, required, options,
       <ErrorMsg id={errorId} message={error} />
     </div>
   );
-};
+});
 
-export const TextArea: React.FC<TextAreaProps> = ({ label, error, required, className = '', id, ...props }) => {
+export const TextArea = React.memo<TextAreaProps>(({ label, error, required, className = '', id, ...props }) => {
   const generatedId = React.useId();
   const textAreaId = id || generatedId;
   const errorId = `${textAreaId}-error`;
@@ -85,4 +85,4 @@ export const TextArea: React.FC<TextAreaProps> = ({ label, error, required, clas
       <ErrorMsg id={errorId} message={error} />
     </div>
   );
-};
+});
