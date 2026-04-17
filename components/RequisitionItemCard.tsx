@@ -55,6 +55,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             onClick={() => removeItem(index)}
             className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
             title="Remover Item"
+            aria-label={`Remover Item ${item.itemCode || index + 1}`}
           >
             <Trash2 className="w-5 h-5" />
           </button>

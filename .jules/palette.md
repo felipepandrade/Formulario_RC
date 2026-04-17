@@ -1,0 +1,3 @@
+## 2024-03-24 - React useId Accessibility Pattern
+**Learning:** React's `useId()` is a critical hook for automatic label-to-input association in custom, reusable form components. It ensures unique IDs are always present, avoiding manual ID management which is prone to duplication, while significantly improving screen reader accessibility and click-to-focus behavior.
+**Action:** When creating reusable form components, always leverage `useId()` to generate internal IDs if none is provided via props, and ensure they are used to link `Label` (`htmlFor`) to `input/select/textarea` (`id`) and error messages (`aria-describedby`).
