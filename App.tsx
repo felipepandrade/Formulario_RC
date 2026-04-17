@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PlusCircle, Mail, AlertCircle, User } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
@@ -9,7 +9,6 @@ import {
 import { Input, Select } from './components/InputFields';
 import { EngieLogo } from './components/Logo';
 import RequisitionItemCard from './components/RequisitionItemCard';
-import { useCallback } from 'react';
 
 const initialItem: RequisitionItem = {
   id: '1',
@@ -160,6 +159,21 @@ export default function App() {
     window.location.href = mailtoLink;
   };
 
+  // ⚡ Bolt Optimization: Memoize the rendered items list
+  // Prevents O(N) array mapping and shallow prop comparisons when the user
+  // types in the global form fields (Solicitante/Local).
+  // Expected Impact: Render time for global field keystrokes drops from O(N) to O(1).
+  const renderedItems = useMemo(() => items.map((item, index) => (
+    <RequisitionItemCard
+      key={item.id}
+      item={item}
+      index={index}
+      canRemove={items.length > 1}
+      updateItem={updateItem}
+      removeItem={removeItem}
+    />
+  )), [items, updateItem, removeItem, items.length]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-gray-900">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -206,16 +220,7 @@ export default function App() {
           </div>
 
           {/* Items Loop */}
-          {items.map((item, index) => (
-             <RequisitionItemCard
-                key={item.id}
-                item={item}
-                index={index}
-                canRemove={items.length > 1}
-                updateItem={updateItem}
-                removeItem={removeItem}
-             />
-          ))}
+          {renderedItems}
             
           <div className="flex justify-center pt-4">
             <button
