@@ -169,16 +169,19 @@ export default function App() {
   // Prevents O(N) array mapping and shallow prop comparisons when the user
   // types in the global form fields (Solicitante/Local).
   // Expected Impact: Render time for global field keystrokes drops from O(N) to O(1).
-  const renderedItems = useMemo(() => items.map((item, index) => (
-    <RequisitionItemCard
-      key={item.id}
-      item={item}
-      index={index}
-      canRemove={items.length > 1}
-      updateItem={updateItem}
-      removeItem={removeItem}
-    />
-  )), [items, updateItem, removeItem, items.length]);
+  const renderedItems = useMemo(() => {
+    const canRemove = items.length > 1;
+    return items.map((item, index) => (
+      <RequisitionItemCard
+        key={item.id}
+        item={item}
+        index={index}
+        canRemove={canRemove}
+        updateItem={updateItem}
+        removeItem={removeItem}
+      />
+    ));
+  }, [items, updateItem, removeItem]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-gray-900">
