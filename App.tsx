@@ -57,7 +57,9 @@ export default function App() {
   const removeItem = useCallback((index: number) => {
     setItems((prevItems) => {
       if (prevItems.length === 1) return prevItems;
-      return prevItems.filter((_, i) => i !== index);
+      const newItems = [...prevItems];
+      newItems.splice(index, 1);
+      return newItems;
     });
   }, []);
 
