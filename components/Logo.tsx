@@ -1,13 +1,13 @@
 
 import { useState } from 'react';
 
-export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string }) => {
-  // Tenta carregar do seu repositório primeiro
-  const githubUrl = "https://raw.githubusercontent.com/felipepandrade/Formulario_RC/main/Logo-Principal-Azul-Fundo-Transparente.png";
-  // Fallback oficial se a imagem do repo não existir ou der erro
-  const wikimediaUrl = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Engie_logo.svg";
+// Tenta carregar do seu repositório primeiro
+const GITHUB_LOGO_URL = "https://raw.githubusercontent.com/felipepandrade/Formulario_RC/main/Logo-Principal-Azul-Fundo-Transparente.png";
+// Fallback oficial se a imagem do repo não existir ou der erro
+const WIKIMEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Engie_logo.svg";
 
-  const [imgSrc, setImgSrc] = useState(githubUrl);
+export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string }) => {
+  const [imgSrc, setImgSrc] = useState(GITHUB_LOGO_URL);
 
   return (
     <img
@@ -17,8 +17,8 @@ export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string })
       style={{ objectFit: 'contain' }}
       onError={() => {
         // Se der erro no link do GitHub, muda automaticamente para o da Wikimedia
-        if (imgSrc !== wikimediaUrl) {
-          setImgSrc(wikimediaUrl);
+        if (imgSrc !== WIKIMEDIA_LOGO_URL) {
+          setImgSrc(WIKIMEDIA_LOGO_URL);
         }
       }}
     />
