@@ -70,8 +70,8 @@ export default function App() {
       const prefix = items.length > 1 ? `Item ${i + 1}: ` : '';
       
       if (!item.description.trim()) { setError(`${prefix}Descrição é obrigatória.`); return false; }
-      if (item.quantity <= 0) { setError(`${prefix}Quantidade deve ser maior que 0.`); return false; }
-      if (item.price <= 0) { setError(`${prefix}Preço é obrigatório.`); return false; }
+      if (item.quantity <= 0 || isNaN(item.quantity)) { setError(`${prefix}Quantidade deve ser maior que 0.`); return false; }
+      if (item.price <= 0 || isNaN(item.price)) { setError(`${prefix}Preço é obrigatório.`); return false; }
       if (item.originType === 'Selecione') { setError(`${prefix}Tipo de Origem é obrigatório.`); return false; }
       if (item.agreementType === 'Selecione') { setError(`${prefix}Tipo de Acordo é obrigatório.`); return false; }
       if (item.destinationType === 'Selecione') { setError(`${prefix}Tipo de Destino é obrigatório.`); return false; }

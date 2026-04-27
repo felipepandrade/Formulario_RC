@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useId } from 'react';
 
 interface BaseProps {
   label: string;
@@ -13,8 +13,8 @@ interface SelectProps extends BaseProps, React.SelectHTMLAttributes<HTMLSelectEl
 }
 interface TextAreaProps extends BaseProps, React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
-export const Label: React.FC<{ children: React.ReactNode; required?: boolean }> = ({ children, required }) => (
-  <label className="block text-sm font-medium text-gray-700 mb-1">
+export const Label: React.FC<{ children: React.ReactNode; required?: boolean; htmlFor?: string }> = ({ children, required, htmlFor }) => (
+  <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
 );
@@ -24,41 +24,53 @@ export const ErrorMsg: React.FC<{ message?: string }> = ({ message }) => {
   return <p className="mt-1 text-sm text-red-600">{message}</p>;
 };
 
-export const Input = React.memo<InputProps>(({ label, error, required, className = '', ...props }) => (
-  <div className="mb-4">
-    <Label required={required}>{label}</Label>
-    <input
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
-      {...props}
-    />
-    <ErrorMsg message={error} />
-  </div>
-));
+export const Input = React.memo<InputProps>(({ label, error, required, className = '', ...props }) => {
+  const id = useId();
+  return (
+    <div className="mb-4">
+      <Label required={required} htmlFor={id}>{label}</Label>
+      <input
+        id={id}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
+        {...props}
+      />
+      <ErrorMsg message={error} />
+    </div>
+  );
+});
 
-export const Select = React.memo<SelectProps>(({ label, error, required, options, className = '', ...props }) => (
-  <div className="mb-4">
-    <Label required={required}>{label}</Label>
-    <select
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
-      {...props}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="text-gray-900">
-          {opt.label}
-        </option>
-      ))}
-    </select>
-    <ErrorMsg message={error} />
-  </div>
-));
+export const Select = React.memo<SelectProps>(({ label, error, required, options, className = '', ...props }) => {
+  const id = useId();
+  return (
+    <div className="mb-4">
+      <Label required={required} htmlFor={id}>{label}</Label>
+      <select
+        id={id}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
+        {...props}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} className="text-gray-900">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <ErrorMsg message={error} />
+    </div>
+  );
+});
 
-export const TextArea = React.memo<TextAreaProps>(({ label, error, required, className = '', ...props }) => (
-  <div className="mb-4">
-    <Label required={required}>{label}</Label>
-    <textarea
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
-      {...props}
-    />
-    <ErrorMsg message={error} />
-  </div>
-));
+export const TextArea = React.memo<TextAreaProps>(({ label, error, required, className = '', ...props }) => {
+  const id = useId();
+  return (
+    <div className="mb-4">
+      <Label required={required} htmlFor={id}>{label}</Label>
+      <textarea
+        id={id}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
+        {...props}
+      />
+      <ErrorMsg message={error} />
+    </div>
+  );
+});
