@@ -50,7 +50,7 @@ export default function App() {
   const addItem = useCallback(() => {
     setItems((prevItems) => [
       ...prevItems,
-      { ...initialItem, id: Math.random().toString(36).substr(2, 9) },
+      { ...initialItem, id: crypto.randomUUID() },
     ]);
   }, []);
 
