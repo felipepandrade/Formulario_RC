@@ -34,6 +34,33 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
   updateItem,
   removeItem,
 }) => {
+  // ⚡ Bolt Optimization: Memoize inline onChange handlers.
+  // Because `Input`, `Select`, and `TextArea` are wrapped in `React.memo`, passing
+  // inline anonymous functions like `(e) => updateItem(...)` causes them to re-render
+  // on every keystroke, defeating the purpose of `React.memo` entirely.
+  // By memoizing the handlers based on `index` and `updateItem`, we stabilize their
+  // references and allow the child form fields to properly skip rendering.
+  // Expected Impact: Significant reduction in child component render counts during typing.
+  const handlers = React.useMemo(() => ({
+    onItemCodeChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'itemCode', e.target.value),
+    onDescriptionChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'description', e.target.value),
+    onQuantityChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'quantity', parseFloat(e.target.value)),
+    onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'price', parseFloat(e.target.value)),
+    onOsNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'osNumber', e.target.value),
+    onUsageLocationChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'usageLocation', e.target.value),
+    onOriginTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'originType', e.target.value),
+    onAgreementTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'agreementType', e.target.value),
+    onAgreementChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'agreement', e.target.value),
+    onProviderChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'provider', e.target.value),
+    onObjectiveChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'objective', e.target.value),
+    onUsageIntentChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'usageIntent', e.target.value),
+    onDestinationTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'destinationType', e.target.value),
+    onSubInventoryChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'subInventory', e.target.value),
+    onJustificationChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'justification', e.target.value),
+    onBuyerObservationChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'buyerObservation', e.target.value),
+    onProviderObservationChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'providerObservation', e.target.value),
+  }), [index, updateItem]);
+
   return (
     <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
       {/* Item Header */}
@@ -68,7 +95,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <Input
               label="Código do Item"
               value={item.itemCode}
-              onChange={(e) => updateItem(index, 'itemCode', e.target.value)}
+              onChange={handlers.onItemCodeChange}
               placeholder="Opcional"
             />
           </div>
@@ -76,7 +103,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <TextArea
               label="Descrição Detalhada"
               value={item.description}
-              onChange={(e) => updateItem(index, 'description', e.target.value)}
+              onChange={handlers.onDescriptionChange}
               placeholder="Descreva o material ou serviço com detalhes..."
               rows={2}
               required
@@ -90,7 +117,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             type="number"
             step="0.01"
             value={item.quantity}
-            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
+            onChange={handlers.onQuantityChange}
             required
           />
           <Input
@@ -98,13 +125,13 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             type="number"
             step="0.01"
             value={item.price}
-            onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value))}
+            onChange={handlers.onPriceChange}
             required
           />
           <Input
             label="Número da OS"
             value={item.osNumber || ''}
-            onChange={(e) => updateItem(index, 'osNumber', e.target.value)}
+            onChange={handlers.onOsNumberChange}
             placeholder="Se houver"
           />
         </div>
@@ -113,7 +140,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           <Input
             label="Local de Utilização - Nome da Instalação/Gasoduto"
             value={item.usageLocation || ''}
-            onChange={(e) => updateItem(index, 'usageLocation', e.target.value)}
+            onChange={handlers.onUsageLocationChange}
             placeholder="Ex: Gasoduto X, Instalação Y..."
           />
         </div>
@@ -131,7 +158,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <Select
               label="Tipo de Origem"
               value={item.originType}
-              onChange={(e) => updateItem(index, 'originType', e.target.value)}
+              onChange={handlers.onOriginTypeChange}
               options={ORIGIN_TYPES}
               required
             />
@@ -140,7 +167,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               <Select
                 label="Tipo de Acordo"
                 value={item.agreementType}
-                onChange={(e) => updateItem(index, 'agreementType', e.target.value)}
+                onChange={handlers.onAgreementTypeChange}
                 options={AGREEMENT_TYPES}
                 required
               />
@@ -152,7 +179,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <Input
               label="Acordo"
               value={item.agreement || ''}
-              onChange={(e) => updateItem(index, 'agreement', e.target.value)}
+              onChange={handlers.onAgreementChange}
               placeholder="Ex: AC288ESOM"
             />
           </div>
@@ -160,7 +187,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <Input
               label="Fornecedor Sugerido"
               value={item.provider || ''}
-              onChange={(e) => updateItem(index, 'provider', e.target.value)}
+              onChange={handlers.onProviderChange}
               placeholder="Nome do Fornecedor"
             />
           </div>
@@ -179,28 +206,28 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <Select
               label="Objetivo da RC"
               value={item.objective}
-              onChange={(e) => updateItem(index, 'objective', e.target.value)}
+              onChange={handlers.onObjectiveChange}
               options={RC_OBJECTIVES}
               required
             />
             <Select
               label="Uso Pretendido"
               value={item.usageIntent}
-              onChange={(e) => updateItem(index, 'usageIntent', e.target.value)}
+              onChange={handlers.onUsageIntentChange}
               options={USAGE_INTENTS}
               required
             />
             <Select
               label="Tipo de Destino"
               value={item.destinationType}
-              onChange={(e) => updateItem(index, 'destinationType', e.target.value)}
+              onChange={handlers.onDestinationTypeChange}
               options={DESTINATION_TYPES}
               required
             />
             <Select
               label="Subinventário"
               value={item.subInventory}
-              onChange={(e) => updateItem(index, 'subInventory', e.target.value)}
+              onChange={handlers.onSubInventoryChange}
               options={SUB_INVENTORIES}
             />
           </div>
@@ -216,7 +243,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             <TextArea
               label="Justificativa Técnica"
               value={item.justification}
-              onChange={(e) => updateItem(index, 'justification', e.target.value)}
+              onChange={handlers.onJustificationChange}
               placeholder="Explique a necessidade, aplicação e impacto..."
               rows={4}
               required
@@ -225,14 +252,14 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               <TextArea
                 label="Obs. ao Comprador"
                 value={item.buyerObservation}
-                onChange={(e) => updateItem(index, 'buyerObservation', e.target.value)}
+                onChange={handlers.onBuyerObservationChange}
                 placeholder="Instruções para compras..."
                 rows={2}
               />
               <TextArea
                 label="Obs. ao Fornecedor"
                 value={item.providerObservation}
-                onChange={(e) => updateItem(index, 'providerObservation', e.target.value)}
+                onChange={handlers.onProviderObservationChange}
                 placeholder="Instruções para o fornecedor..."
                 rows={2}
               />
