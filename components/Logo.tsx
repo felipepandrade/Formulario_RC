@@ -6,6 +6,8 @@ const GITHUB_LOGO_URL = "https://raw.githubusercontent.com/felipepandrade/Formul
 // Fallback oficial se a imagem do repo não existir ou der erro
 const WIKIMEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Engie_logo.svg";
 
+const LOGO_STYLE: React.CSSProperties = { objectFit: 'contain' };
+
 export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string }) => {
   const [imgSrc, setImgSrc] = useState(GITHUB_LOGO_URL);
 
@@ -14,7 +16,7 @@ export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string })
       src={imgSrc}
       alt="ENGIE"
       className={className}
-      style={{ objectFit: 'contain' }}
+      style={LOGO_STYLE}
       onError={() => {
         // Se der erro no link do GitHub, muda automaticamente para o da Wikimedia
         if (imgSrc !== WIKIMEDIA_LOGO_URL) {
