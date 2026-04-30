@@ -168,6 +168,7 @@ export default function App() {
     const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
     // Security Fix: Prevent silent DoS / data truncation in mail clients due to URL length limits
+    // Note: Outlook and other clients typically fail when the mailto URI exceeds 2000 characters.
     if (mailtoLink.length > 2000) {
       setError('O tamanho da solicitação excede o limite do cliente de e-mail. Por favor, reduza a quantidade de itens ou o tamanho das descrições.');
       return;
