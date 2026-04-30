@@ -71,15 +71,24 @@ export default function App() {
       const item = items[i];
       const prefix = items.length > 1 ? `Item ${i + 1}: ` : '';
       
-      if (!item.description.trim()) { setError(`${prefix}Descrição é obrigatória.`); return false; }
-      if (item.quantity <= 0) { setError(`${prefix}Quantidade deve ser maior que 0.`); return false; }
-      if (item.price <= 0) { setError(`${prefix}Preço é obrigatório.`); return false; }
-      if (item.originType === 'Selecione') { setError(`${prefix}Tipo de Origem é obrigatório.`); return false; }
-      if (item.agreementType === 'Selecione') { setError(`${prefix}Tipo de Acordo é obrigatório.`); return false; }
-      if (item.destinationType === 'Selecione') { setError(`${prefix}Tipo de Destino é obrigatório.`); return false; }
-      if (item.usageIntent === 'Selecione') { setError(`${prefix}Uso Pretendido é obrigatório.`); return false; }
-      if (item.objective === 'Selecione') { setError(`${prefix}Objetivo da RC é obrigatório.`); return false; }
-      if (!item.justification.trim()) { setError(`${prefix}Justificativa é obrigatória.`); return false; }
+      const rules = [
+        { condition: !item.description.trim(), msg: 'Descrição é obrigatória.' },
+        { condition: isNaN(item.quantity) || item.quantity <= 0, msg: 'Quantidade deve ser maior que 0.' },
+        { condition: isNaN(item.price) || item.price <= 0, msg: 'Preço é obrigatório.' },
+        { condition: item.originType === 'Selecione', msg: 'Tipo de Origem é obrigatório.' },
+        { condition: item.agreementType === 'Selecione', msg: 'Tipo de Acordo é obrigatório.' },
+        { condition: item.destinationType === 'Selecione', msg: 'Tipo de Destino é obrigatório.' },
+        { condition: item.usageIntent === 'Selecione', msg: 'Uso Pretendido é obrigatório.' },
+        { condition: item.objective === 'Selecione', msg: 'Objetivo da RC é obrigatório.' },
+        { condition: !item.justification.trim(), msg: 'Justificativa é obrigatória.' }
+      ];
+
+      for (const rule of rules) {
+        if (rule.condition) {
+          setError(`${prefix}${rule.msg}`);
+          return false;
+        }
+      }
     }
     return true;
   };
