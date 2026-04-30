@@ -50,16 +50,14 @@ export default function App() {
   const addItem = useCallback(() => {
     setItems((prevItems) => [
       ...prevItems,
-      { ...initialItem, id: crypto.randomUUID() },
+      { ...initialItem, id: Math.random().toString(36).substr(2, 9) },
     ]);
   }, []);
 
   const removeItem = useCallback((index: number) => {
     setItems((prevItems) => {
       if (prevItems.length === 1) return prevItems;
-      const newItems = [...prevItems];
-      newItems.splice(index, 1);
-      return newItems;
+      return prevItems.filter((_, i) => i !== index);
     });
   }, []);
 
