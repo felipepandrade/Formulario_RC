@@ -24,41 +24,62 @@ export const ErrorMsg: React.FC<{ message?: string }> = ({ message }) => {
   return <p className="mt-1 text-sm text-red-600">{message}</p>;
 };
 
-export const Input = React.memo<InputProps>(({ label, error, required, className = '', ...props }) => (
-  <div className="mb-4">
-    <Label required={required}>{label}</Label>
-    <input
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
-      {...props}
-    />
-    <ErrorMsg message={error} />
-  </div>
-));
+export const Input = React.memo<InputProps>(({ label, error, required, className = '', id, ...props }) => {
+  const defaultId = React.useId();
+  const inputId = id || defaultId;
+  return (
+    <div className="mb-4">
+      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        id={inputId}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
+        {...props}
+      />
+      <ErrorMsg message={error} />
+    </div>
+  );
+});
 
-export const Select = React.memo<SelectProps>(({ label, error, required, options, className = '', ...props }) => (
-  <div className="mb-4">
-    <Label required={required}>{label}</Label>
-    <select
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
-      {...props}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="text-gray-900">
-          {opt.label}
-        </option>
-      ))}
-    </select>
-    <ErrorMsg message={error} />
-  </div>
-));
+export const Select = React.memo<SelectProps>(({ label, error, required, options, className = '', id, ...props }) => {
+  const defaultId = React.useId();
+  const selectId = id || defaultId;
+  return (
+    <div className="mb-4">
+      <label htmlFor={selectId} className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        id={selectId}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
+        {...props}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} className="text-gray-900">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <ErrorMsg message={error} />
+    </div>
+  );
+});
 
-export const TextArea = React.memo<TextAreaProps>(({ label, error, required, className = '', ...props }) => (
-  <div className="mb-4">
-    <Label required={required}>{label}</Label>
-    <textarea
-      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
-      {...props}
-    />
-    <ErrorMsg message={error} />
-  </div>
-));
+export const TextArea = React.memo<TextAreaProps>(({ label, error, required, className = '', id, ...props }) => {
+  const defaultId = React.useId();
+  const textAreaId = id || defaultId;
+  return (
+    <div className="mb-4">
+      <label htmlFor={textAreaId} className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <textarea
+        id={textAreaId}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm border p-2 bg-white text-gray-900 placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
+        {...props}
+      />
+      <ErrorMsg message={error} />
+    </div>
+  );
+});

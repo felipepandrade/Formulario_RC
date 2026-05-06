@@ -63,3 +63,5 @@ export const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_PILAR_OI': 'camila.monteiro@engie.com',
   'ESOM_F_ATALAIA_OI': 'ivone.andrade@engie.com',
 };
+
+export const MAX_MAILTO_LENGTH = 2000;

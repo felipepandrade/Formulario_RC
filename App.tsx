@@ -5,6 +5,7 @@ import { RequisitionItem } from './types';
 import {
   LOCATIONS,
   EMAIL_MAPPING,
+  MAX_MAILTO_LENGTH,
 } from './constants';
 import { Input, Select } from './components/InputFields';
 import { EngieLogo } from './components/Logo';
@@ -168,7 +169,7 @@ export default function App() {
     const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
     // Security Fix: Prevent silent DoS / data truncation in mail clients due to URL length limits
-    if (mailtoLink.length > 2000) {
+    if (mailtoLink.length > MAX_MAILTO_LENGTH) {
       setError('O tamanho da solicitação excede o limite do cliente de e-mail. Por favor, reduza a quantidade de itens ou o tamanho das descrições.');
       return;
     }
