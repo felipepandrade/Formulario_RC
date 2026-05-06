@@ -10,8 +10,8 @@ import { Input, Select } from './components/InputFields';
 import { EngieLogo } from './components/Logo';
 import RequisitionItemCard from './components/RequisitionItemCard';
 
-const initialItem: RequisitionItem = {
-  id: '1',
+const createInitialItem = (): RequisitionItem => ({
+  id: crypto.randomUUID(),
   itemCode: '',
   description: '',
   quantity: 1,
@@ -29,12 +29,12 @@ const initialItem: RequisitionItem = {
   justification: '',
   buyerObservation: '',
   providerObservation: '',
-};
+});
 
 export default function App() {
   const [requester, setRequester] = useState('');
   const [location, setLocation] = useState('Selecione');
-  const [items, setItems] = useState<RequisitionItem[]>([{ ...initialItem }]);
+  const [items, setItems] = useState<RequisitionItem[]>(() => [createInitialItem()]);
   
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +50,7 @@ export default function App() {
   const addItem = useCallback(() => {
     setItems((prevItems) => [
       ...prevItems,
-      { ...initialItem, id: crypto.randomUUID() },
+      createInitialItem(),
     ]);
   }, []);
 
