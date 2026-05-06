@@ -55,11 +55,12 @@ export const RC_OBJECTIVES = [
   { label: 'SPARE PARTS INSUMO', value: 'SPARE PARTS INSUMO' },
 ];
 
-// Backend Mapping for reference (implemented in server logic)
+// Recipient emails are managed via environment variables for security.
+// See .env.example for required variables.
 export const EMAIL_MAPPING: Record<string, string> = {
-  'ESOM_F_CATU_OI': 'tatiana.ribeiro@engie.com',
-  'ESOM_F_CAMACARI_OI': 'luciana.buente@engie.com',
-  'ESOM_F_ITABUNA_OI': 'alane.reis@engie.com',
-  'ESOM_F_PILAR_OI': 'camila.monteiro@engie.com',
-  'ESOM_F_ATALAIA_OI': 'ivone.andrade@engie.com',
+  'ESOM_F_CATU_OI': import.meta.env.VITE_EMAIL_CATU_OI || '',
+  'ESOM_F_CAMACARI_OI': import.meta.env.VITE_EMAIL_CAMACARI_OI || '',
+  'ESOM_F_ITABUNA_OI': import.meta.env.VITE_EMAIL_ITABUNA_OI || '',
+  'ESOM_F_PILAR_OI': import.meta.env.VITE_EMAIL_PILAR_OI || '',
+  'ESOM_F_ATALAIA_OI': import.meta.env.VITE_EMAIL_ATALAIA_OI || '',
 };
