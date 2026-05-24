@@ -9,6 +9,7 @@ import {
 import { Input, Select } from './components/InputFields';
 import { EngieLogo } from './components/Logo';
 import RequisitionItemCard from './components/RequisitionItemCard';
+import { generateEmailBody } from './utils/emailTemplates';
 
 const createInitialItem = (): RequisitionItem => ({
   id: crypto.randomUUID(),
@@ -104,58 +105,7 @@ export default function App() {
     const subject = `Solicitação de Requisição de Compra – ${requester} – ${location}`;
 
     // 3. Montar Corpo do E-mail (Texto Puro Formatado)
-    // Optimization: Using an array to collect string parts and joining them at the end.
-    // This avoids multiple string allocations and copies in each iteration of the loop,
-    // which can lead to better memory efficiency and performance as the number of items grows.
-    const bodyParts: string[] = [];
-    bodyParts.push(`SOLICITAÇÃO DE REQUISIÇÃO DE COMPRA\n`);
-    bodyParts.push(`--------------------------------------------------\n`);
-    bodyParts.push(`SOLICITANTE: ${requester}\n`);
-    bodyParts.push(`LOCAL DE ENTREGA: ${location}\n`);
-    bodyParts.push(`--------------------------------------------------\n\n`);
-
-    items.forEach((item, index) => {
-      bodyParts.push(`================ ITEM #${index + 1} ================\n`);
-      bodyParts.push(`CÓDIGO: ${item.itemCode || 'A DEFINIR'}\n`);
-      bodyParts.push(`DESCRIÇÃO:\n${item.description}\n\n`);
-      
-      bodyParts.push(`QUANTIDADE: ${item.quantity}\n`);
-      bodyParts.push(`PREÇO EST.: R$ ${item.price.toFixed(2)}\n`);
-      bodyParts.push(`OS: ${item.osNumber || 'N/A'}\n`);
-      if (item.usageLocation) bodyParts.push(`LOCAL DE UTILIZAÇÃO: ${item.usageLocation}\n`);
-      
-      bodyParts.push(`\n--- ORIGEM & ACORDO ---\n`);
-      bodyParts.push(`ORIGEM: ${item.originType}\n`);
-      bodyParts.push(`TIPO ACORDO: ${item.agreementType}\n`);
-      if (item.agreement) bodyParts.push(`ACORDO: ${item.agreement}\n`);
-      if (item.provider) bodyParts.push(`FORNECEDOR: ${item.provider}\n`);
-
-      bodyParts.push(`\n--- CLASSIFICAÇÃO & DESTINO ---\n`);
-      bodyParts.push(`OBJETIVO: ${item.objective}\n`);
-      bodyParts.push(`USO PRETENDIDO: ${item.usageIntent}\n`);
-      bodyParts.push(`TIPO DESTINO: ${item.destinationType}\n`);
-      if (item.subInventory) bodyParts.push(`SUBINVENTÁRIO: ${item.subInventory}\n`);
-
-      bodyParts.push(`\n--- JUSTIFICATIVA ---\n`);
-      bodyParts.push(`${item.justification}\n`);
-
-      if (item.buyerObservation) {
-        bodyParts.push(`\nOBS. COMPRADOR: ${item.buyerObservation}`);
-        if (item.provider) bodyParts.push(` (Fornecedor indicado: ${item.provider})`);
-        bodyParts.push(`\n`);
-      } else if (item.provider) {
-         bodyParts.push(`\nOBS. COMPRADOR: Fornecedor indicado: ${item.provider}\n`);
-      }
-
-      if (item.providerObservation) {
-        bodyParts.push(`OBS. FORNECEDOR: ${item.providerObservation}\n`);
-      }
-      
-      bodyParts.push(`\n\n`);
-    });
-
-    bodyParts.push(`Email gerado automaticamente pelo Sistema ESOM.\n`);
-    const body = bodyParts.join('');
+    const body = generateEmailBody(requester, location, items);
 
     // 4. Abrir Outlook via mailto
     // Encode components to ensure special characters work in URL
