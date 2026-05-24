@@ -7,3 +7,8 @@
 **Vulnerability:** Use of `Math.random()` for generating unique identifiers (IDs). `Math.random()` is not cryptographically secure and can be predictable, which may lead to ID collisions or predictability in sensitive contexts.
 **Learning:** For generating unique and secure identifiers, `crypto.randomUUID()` should be used as it provides a cryptographically strong random number generator.
 **Prevention:** Avoid `Math.random()` for security-sensitive operations or ID generation. Use the Web Crypto API's `crypto.randomUUID()` or `crypto.getRandomValues()` instead.
+
+## 2025-01-24 - [Sensitive Data Exposure in Client Bundle]
+**Vulnerability:** Sensitive email addresses were stored as plain text in environment variables prefixed with `VITE_`. Vite statically replaces these variables during build, exposing them in the final JavaScript bundle.
+**Learning:** Any environment variable prefixed with `VITE_` is public and easily readable by anyone inspecting the client-side code.
+**Prevention:** Avoid storing sensitive data in `VITE_` variables. If necessary for functionality, use obfuscation (like Base64 encoding) to prevent simple automated scraping and accidental exposure, although true secrets should always remain server-side.
