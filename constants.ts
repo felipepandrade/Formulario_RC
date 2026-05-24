@@ -55,12 +55,32 @@ export const RC_OBJECTIVES = [
   { label: 'SPARE PARTS INSUMO', value: 'SPARE PARTS INSUMO' },
 ];
 
+/**
+ * Decodes a Base64 encoded email address.
+ *
+ * SECURITY NOTE: This provides a layer of obfuscation to prevent plain-text exposure
+ * of sensitive email addresses in the client-side bundle. Since this is a
+ * client-only application that generates mailto: links, the email addresses
+ * must be available to the browser. Base64 is used as a mitigation against
+ * simple automated scraping.
+ */
+const decodeEmail = (encoded: string): string => {
+  if (!encoded) return '';
+  try {
+    return atob(encoded);
+  } catch (e) {
+    console.error('Failed to decode email:', e);
+    return '';
+  }
+};
+
 // Recipient emails are managed via environment variables for security.
+// Values should be Base64 encoded to avoid plain-text exposure in the bundle.
 // See .env.example for required variables.
 export const EMAIL_MAPPING: Record<string, string> = {
-  'ESOM_F_CATU_OI': import.meta.env.VITE_EMAIL_CATU_OI || '',
-  'ESOM_F_CAMACARI_OI': import.meta.env.VITE_EMAIL_CAMACARI_OI || '',
-  'ESOM_F_ITABUNA_OI': import.meta.env.VITE_EMAIL_ITABUNA_OI || '',
-  'ESOM_F_PILAR_OI': import.meta.env.VITE_EMAIL_PILAR_OI || '',
-  'ESOM_F_ATALAIA_OI': import.meta.env.VITE_EMAIL_ATALAIA_OI || '',
+  'ESOM_F_CATU_OI': decodeEmail(import.meta.env.VITE_EMAIL_CATU_OI),
+  'ESOM_F_CAMACARI_OI': decodeEmail(import.meta.env.VITE_EMAIL_CAMACARI_OI),
+  'ESOM_F_ITABUNA_OI': decodeEmail(import.meta.env.VITE_EMAIL_ITABUNA_OI),
+  'ESOM_F_PILAR_OI': decodeEmail(import.meta.env.VITE_EMAIL_PILAR_OI),
+  'ESOM_F_ATALAIA_OI': decodeEmail(import.meta.env.VITE_EMAIL_ATALAIA_OI),
 };
