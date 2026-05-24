@@ -64,3 +64,5 @@ export const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_PILAR_OI': import.meta.env.VITE_EMAIL_PILAR_OI || '',
   'ESOM_F_ATALAIA_OI': import.meta.env.VITE_EMAIL_ATALAIA_OI || '',
 };
+
+export const MAX_MAILTO_LENGTH = 2000;
