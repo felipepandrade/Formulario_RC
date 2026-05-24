@@ -67,22 +67,49 @@ export default function App() {
     if (!requester.trim()) { setError('Solicitante é obrigatório.'); return false; }
     if (location === 'Selecione') { setError('Local para Entrega é obrigatório.'); return false; }
 
+    const hasMultipleItems = items.length > 1;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const prefix = items.length > 1 ? `Item ${i + 1}: ` : '';
       
       // Performance Optimization: Replaced array of rule objects with direct conditional checks.
-      // This avoids redundant object and array allocations in each iteration of the loop,
-      // significantly improving validation performance for large lists of items.
-      if (!item.description.trim()) { setError(`${prefix}Descrição é obrigatória.`); return false; }
-      if (isNaN(item.quantity) || item.quantity <= 0) { setError(`${prefix}Quantidade deve ser maior que 0.`); return false; }
-      if (isNaN(item.price) || item.price <= 0) { setError(`${prefix}Preço é obrigatório.`); return false; }
-      if (item.originType === 'Selecione') { setError(`${prefix}Tipo de Origem é obrigatório.`); return false; }
-      if (item.agreementType === 'Selecione') { setError(`${prefix}Tipo de Acordo é obrigatório.`); return false; }
-      if (item.destinationType === 'Selecione') { setError(`${prefix}Tipo de Destino é obrigatório.`); return false; }
-      if (item.usageIntent === 'Selecione') { setError(`${prefix}Uso Pretendido é obrigatório.`); return false; }
-      if (item.objective === 'Selecione') { setError(`${prefix}Objetivo da RC é obrigatório.`); return false; }
-      if (!item.justification.trim()) { setError(`${prefix}Justificativa é obrigatória.`); return false; }
+      // Also hoisted items.length check outside the loop and deferred prefix string template
+      // execution until a validation error is encountered.
+      if (!item.description.trim()) {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Descrição é obrigatória.`);
+        return false;
+      }
+      if (isNaN(item.quantity) || item.quantity <= 0) {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Quantidade deve ser maior que 0.`);
+        return false;
+      }
+      if (isNaN(item.price) || item.price <= 0) {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Preço é obrigatório.`);
+        return false;
+      }
+      if (item.originType === 'Selecione') {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Origem é obrigatório.`);
+        return false;
+      }
+      if (item.agreementType === 'Selecione') {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Acordo é obrigatório.`);
+        return false;
+      }
+      if (item.destinationType === 'Selecione') {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Destino é obrigatório.`);
+        return false;
+      }
+      if (item.usageIntent === 'Selecione') {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Uso Pretendido é obrigatório.`);
+        return false;
+      }
+      if (item.objective === 'Selecione') {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Objetivo da RC é obrigatório.`);
+        return false;
+      }
+      if (!item.justification.trim()) {
+        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Justificativa é obrigatória.`);
+        return false;
+      }
     }
     return true;
   };
