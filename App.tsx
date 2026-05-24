@@ -38,6 +38,14 @@ export default function App() {
   
   const [error, setError] = useState<string | null>(null);
 
+  const handleRequesterChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setRequester(e.target.value);
+  }, []);
+
+  const handleLocationChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setLocation(e.target.value);
+  }, []);
+
   // Helper to update specific item fields
   const updateItem = useCallback((index: number, field: keyof RequisitionItem, value: any) => {
     setItems((prevItems) => {
@@ -220,14 +228,14 @@ export default function App() {
                 <Input 
                   label="Solicitante" 
                   value={requester} 
-                  onChange={(e) => setRequester(e.target.value)} 
+                  onChange={handleRequesterChange}
                   placeholder="Nome Completo" 
                   required 
                 />
                 <Select 
                   label="Local para Entrega" 
                   value={location} 
-                  onChange={(e) => setLocation(e.target.value)} 
+                  onChange={handleLocationChange}
                   options={LOCATIONS} 
                   required 
                 />
