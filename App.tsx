@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { PlusCircle, Mail, AlertCircle, User } from 'lucide-react';
+import { PlusCircle, Mail, AlertCircle, User, Copy, Check, Download, Calculator } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
   LOCATIONS,
@@ -32,27 +32,51 @@ const createInitialItem = (): RequisitionItem => ({
   providerObservation: '',
 });
 
+interface FormErrors {
+  requester?: string;
+  location?: string;
+  items: Record<number, Partial<Record<keyof RequisitionItem, string>>>;
+}
+
 export default function App() {
   const [requester, setRequester] = useState('');
   const [location, setLocation] = useState('Selecione');
   const [items, setItems] = useState<RequisitionItem[]>(() => [createInitialItem()]);
   
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({ items: {} });
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const handleRequesterChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setRequester(e.target.value);
+    setFormErrors((prev) => (prev.requester ? { ...prev, requester: undefined } : prev));
   }, []);
 
   const handleLocationChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setLocation(e.target.value);
+    setFormErrors((prev) => (prev.location ? { ...prev, location: undefined } : prev));
   }, []);
 
   // Helper to update specific item fields
-  const updateItem = useCallback((index: number, field: keyof RequisitionItem, value: any) => {
+  const updateItem = useCallback(<K extends keyof RequisitionItem>(index: number, field: K, value: RequisitionItem[K]) => {
     setItems((prevItems) => {
       const newItems = [...prevItems];
       newItems[index] = { ...newItems[index], [field]: value };
       return newItems;
+    });
+    setFormErrors((prev) => {
+      if (prev.items[index]?.[field]) {
+        const itemErrors = { ...prev.items[index] };
+        delete itemErrors[field];
+        return {
+          ...prev,
+          items: {
+            ...prev.items,
+            [index]: itemErrors,
+          },
+        };
+      }
+      return prev;
     });
   }, []);
 
@@ -70,62 +94,101 @@ export default function App() {
       newItems.splice(index, 1);
       return newItems;
     });
+    setFormErrors((prev) => {
+      const newItemsErrors: Record<number, Partial<Record<keyof RequisitionItem, string>>> = {};
+      Object.entries(prev.items).forEach(([key, val]) => {
+        const numKey = Number(key);
+        if (numKey < index) {
+          newItemsErrors[numKey] = val;
+        } else if (numKey > index) {
+          newItemsErrors[numKey - 1] = val;
+        }
+      });
+      return { ...prev, items: newItemsErrors };
+    });
   }, []);
 
   const validateForm = (): boolean => {
-    if (!requester.trim()) { setError('Solicitante é obrigatório.'); return false; }
-    if (location === 'Selecione') { setError('Local para Entrega é obrigatório.'); return false; }
+    const newErrors: FormErrors = { items: {} };
+    let firstError: string | null = null;
+
+    if (!requester.trim()) {
+      newErrors.requester = 'Solicitante é obrigatório.';
+      if (!firstError) firstError = newErrors.requester;
+    }
+    if (location === 'Selecione') {
+      newErrors.location = 'Local para Entrega é obrigatório.';
+      if (!firstError) firstError = newErrors.location;
+    }
 
     const hasMultipleItems = items.length > 1;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      
-      // Performance Optimization: Replaced array of rule objects with direct conditional checks.
-      // Also hoisted items.length check outside the loop and deferred prefix string template
-      // execution until a validation error is encountered.
+      const itemErrors: Partial<Record<keyof RequisitionItem, string>> = {};
+
       if (!item.description.trim()) {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Descrição é obrigatória.`);
-        return false;
+        itemErrors.description = 'Descrição é obrigatória.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Descrição é obrigatória.`;
       }
       if (isNaN(item.quantity) || item.quantity <= 0) {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Quantidade deve ser maior que 0.`);
-        return false;
+        itemErrors.quantity = 'Quantidade deve ser maior que 0.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Quantidade deve ser maior que 0.`;
       }
       if (isNaN(item.price) || item.price <= 0) {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Preço é obrigatório.`);
-        return false;
+        itemErrors.price = 'Preço é obrigatório.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Preço é obrigatório.`;
       }
       if (item.originType === 'Selecione') {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Origem é obrigatório.`);
-        return false;
+        itemErrors.originType = 'Tipo de Origem é obrigatório.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Origem é obrigatório.`;
       }
       if (item.agreementType === 'Selecione') {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Acordo é obrigatório.`);
-        return false;
+        itemErrors.agreementType = 'Tipo de Acordo é obrigatório.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Acordo é obrigatório.`;
       }
       if (item.destinationType === 'Selecione') {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Destino é obrigatório.`);
-        return false;
+        itemErrors.destinationType = 'Tipo de Destino é obrigatório.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Tipo de Destino é obrigatório.`;
       }
       if (item.usageIntent === 'Selecione') {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Uso Pretendido é obrigatório.`);
-        return false;
+        itemErrors.usageIntent = 'Uso Pretendido é obrigatório.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Uso Pretendido é obrigatório.`;
       }
       if (item.objective === 'Selecione') {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Objetivo da RC é obrigatório.`);
-        return false;
+        itemErrors.objective = 'Objetivo da RC é obrigatório.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Objetivo da RC é obrigatório.`;
       }
       if (!item.justification.trim()) {
-        setError(`${hasMultipleItems ? `Item ${i + 1}: ` : ''}Justificativa é obrigatória.`);
-        return false;
+        itemErrors.justification = 'Justificativa é obrigatória.';
+        if (!firstError) firstError = `${hasMultipleItems ? `Item ${i + 1}: ` : ''}Justificativa é obrigatória.`;
+      }
+
+      if (Object.keys(itemErrors).length > 0) {
+        newErrors.items[i] = itemErrors;
       }
     }
+
+    setFormErrors(newErrors);
+    if (firstError) {
+      setError(firstError);
+      return false;
+    }
+    setError(null);
     return true;
   };
+
+  const totalEstimatedValue = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const prc = Number(item.price) || 0;
+      return sum + (qty > 0 && prc > 0 ? qty * prc : 0);
+    }, 0);
+  }, [items]);
 
   const handleOpenOutlook = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setCopyStatus(null);
 
     if (!validateForm()) return;
 
@@ -136,8 +199,10 @@ export default function App() {
       return;
     }
 
-    // 2. Montar Assunto
-    const subject = `Solicitação de Requisição de Compra – ${requester} – ${location}`;
+    // 2. Montar Assunto com higienização de quebra de linha
+    const sanitizedRequester = requester.replace(/[\r\n]+/g, ' ').trim();
+    const sanitizedLocation = location.replace(/[\r\n]+/g, ' ').trim();
+    const subject = `Solicitação de Requisição de Compra – ${sanitizedRequester} – ${sanitizedLocation}`;
 
     // 3. Montar Corpo do E-mail (Texto Puro Formatado)
     const body = formatRequisitionEmail(requester, location, items);
@@ -146,14 +211,52 @@ export default function App() {
     // Encode components to ensure special characters work in URL
     const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
-    // Security Fix: Prevent silent DoS / data truncation in mail clients due to URL length limits
+    // Security / Usability Fix: Prevent silent DoS / data truncation in mail clients due to URL length limits
     // Note: Outlook and other clients typically fail when the mailto URI exceeds 2000 characters.
     if (mailtoLink.length > 2000) {
-      setError('O tamanho da solicitação excede o limite do cliente de e-mail. Por favor, reduza a quantidade de itens ou o tamanho das descrições.');
+      setError(
+        `O tamanho da solicitação (${mailtoLink.length} caracteres) excede o limite máximo para abertura direta pelo link do Outlook (2000 caracteres). Utilize o botão "Copiar Solicitação" abaixo para colar o texto completo no corpo do seu e-mail.`
+      );
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(body).then(() => {
+          setCopyStatus('O texto da requisição foi copiado para sua Área de Transferência. Cole no Outlook!');
+        }).catch(() => {});
+      }
       return;
     }
 
     window.location.href = mailtoLink;
+  };
+
+  const handleCopyClipboard = async () => {
+    setError(null);
+    if (!validateForm()) return;
+    const body = formatRequisitionEmail(requester, location, items);
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(body);
+        setCopyStatus('Solicitação copiada com sucesso para a área de transferência!');
+        setTimeout(() => setCopyStatus(null), 4000);
+      } else {
+        setError('Área de transferência não suportada neste ambiente.');
+      }
+    } catch {
+      setError('Não foi possível copiar automaticamente para a área de transferência.');
+    }
+  };
+
+  const handleDownloadTxt = () => {
+    setError(null);
+    if (!validateForm()) return;
+    const body = formatRequisitionEmail(requester, location, items);
+    const sanitizedRequester = requester.replace(/[^a-zA-Z0-9_-]/g, '_') || 'solicitante';
+    const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Requisicao_${sanitizedRequester}_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // ⚡ Bolt Optimization: Memoize the rendered items list
@@ -168,11 +271,12 @@ export default function App() {
         item={item}
         index={index}
         canRemove={canRemove}
+        errors={formErrors.items[index]}
         updateItem={updateItem}
         removeItem={removeItem}
       />
     ));
-  }, [items, updateItem, removeItem]);
+  }, [items, formErrors.items, updateItem, removeItem]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-gray-900">
@@ -206,6 +310,7 @@ export default function App() {
                   label="Solicitante" 
                   value={requester} 
                   onChange={handleRequesterChange}
+                  error={formErrors.requester}
                   placeholder="Nome Completo" 
                   required 
                 />
@@ -213,6 +318,7 @@ export default function App() {
                   label="Local para Entrega" 
                   value={location} 
                   onChange={handleLocationChange}
+                  error={formErrors.location}
                   options={LOCATIONS} 
                   required 
                 />
@@ -222,7 +328,7 @@ export default function App() {
           {/* Items Loop */}
           {renderedItems}
             
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-center pt-2">
             <button
               type="button"
               onClick={addItem}
@@ -231,6 +337,34 @@ export default function App() {
               <PlusCircle className="mr-2 h-5 w-5 text-sky-500" /> Adicionar Outro Item
             </button>
           </div>
+
+          {/* Requisition Summary Card */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-sky-50 rounded-lg text-sky-600">
+                <Calculator className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Resumo da Requisição</p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-bold text-gray-900">{items.length}</span> {items.length === 1 ? 'item cadastrado' : 'itens cadastrados'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Valor Total Estimado</p>
+              <p className="text-2xl font-extrabold text-sky-600">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalEstimatedValue)}
+              </p>
+            </div>
+          </div>
+
+          {copyStatus && (
+            <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-200 flex items-center gap-3 text-emerald-800">
+              <Check className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+              <p className="text-sm font-medium">{copyStatus}</p>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg bg-red-50 p-4 border border-red-200">
@@ -248,10 +382,28 @@ export default function App() {
             </div>
           )}
 
-          <div className="flex justify-end pt-4 pb-12">
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 pb-12">
+            <button
+              type="button"
+              onClick={handleCopyClipboard}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors"
+              title="Copiar texto formatado da requisição para a área de transferência"
+            >
+              <Copy className="mr-2 h-4 w-4 text-gray-500" />
+              Copiar Solicitação
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadTxt}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors"
+              title="Baixar a solicitação como arquivo de texto"
+            >
+              <Download className="mr-2 h-4 w-4 text-gray-500" />
+              Baixar (.txt)
+            </button>
             <button
               type="submit"
-              className="inline-flex items-center px-8 py-4 border border-transparent text-base font-medium rounded-lg shadow-lg text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all transform hover:-translate-y-0.5"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent text-base font-medium rounded-lg shadow-lg text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all transform hover:-translate-y-0.5"
             >
               <Mail className="-ml-1 mr-2 h-5 w-5" />
               Abrir no Outlook

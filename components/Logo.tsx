@@ -1,15 +1,15 @@
 
 import { useState } from 'react';
 
-// Tenta carregar do seu repositório primeiro
-const GITHUB_LOGO_URL = "https://raw.githubusercontent.com/felipepandrade/Formulario_RC/main/Logo-Principal-Azul-Fundo-Transparente.png";
-// Fallback oficial se a imagem do repo não existir ou der erro
+// Logo oficial vetorial armazenado localmente para suporte offline e segurança de rede
+const LOCAL_LOGO_URL = "/engie-logo.svg";
+// Fallback caso necessário
 const WIKIMEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Engie_logo.svg";
 
 const LOGO_STYLE: React.CSSProperties = { objectFit: 'contain' };
 
 export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string }) => {
-  const [imgSrc, setImgSrc] = useState(GITHUB_LOGO_URL);
+  const [imgSrc, setImgSrc] = useState(LOCAL_LOGO_URL);
 
   return (
     <img

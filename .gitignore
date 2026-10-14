@@ -1,4 +1,6 @@
 node_modules/
 dev.log
+*.log
+dev_server.log
 dist/
 .env

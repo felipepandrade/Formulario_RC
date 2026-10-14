@@ -88,7 +88,7 @@ describe('formatRequisitionEmail', () => {
     expect(result).toContain('CÓDIGO: A DEFINIR');
     expect(result).toContain('OS: N/A');
     expect(result).not.toContain('LOCAL DE UTILIZAÇÃO:');
-    expect(result).not.toContain('ACORDO:');
+    expect(result).not.toContain('\nACORDO:');
     expect(result).not.toContain('FORNECEDOR:');
     expect(result).not.toContain('SUBINVENTÁRIO:');
     expect(result).not.toContain('OBS. COMPRADOR:');

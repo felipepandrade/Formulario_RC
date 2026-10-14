@@ -91,4 +91,27 @@ describe('App', () => {
       expect(screen.queryByTitle('Remover Item')).not.toBeInTheDocument();
     });
   });
+
+  describe('Summary and Action Buttons', () => {
+    it('renders the requisition summary and action buttons', () => {
+      render(<App />);
+
+      expect(screen.getByText('Resumo da Requisição')).toBeInTheDocument();
+      expect(screen.getByText(/item cadastrado/i)).toBeInTheDocument();
+      expect(screen.getByText('Valor Total Estimado')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Copiar Solicitação/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Baixar \(\.txt\)/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Abrir no Outlook/i })).toBeInTheDocument();
+    });
+
+    it('shows validation error when attempting to submit empty form', () => {
+      render(<App />);
+
+      const submitButton = screen.getByRole('button', { name: /Abrir no Outlook/i });
+      fireEvent.click(submitButton);
+
+      const errorMessages = screen.getAllByText(/Solicitante é obrigatório/i);
+      expect(errorMessages.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

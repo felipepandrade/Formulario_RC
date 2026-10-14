@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="engie-sky" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00aaff" />
+      <stop offset="50%" stop-color="#0077c8" />
+      <stop offset="100%" stop-color="#004b87" />
+    </linearGradient>
+  </defs>
+  <!-- Canopy Arc -->
+  <path d="M 40 38 C 110 8, 190 8, 260 38 C 220 20, 140 18, 40 38 Z" fill="url(#engie-sky)" />
+  <!-- Text: ENGIE -->
+  <text x="150" y="78" font-family="'Inter', Arial, sans-serif" font-size="44" font-weight="800" fill="#003a70" text-anchor="middle" letter-spacing="1">
+    e<tspan fill="#0077c8">N</tspan>Gie
+  </text>
+</svg>

@@ -15,7 +15,8 @@ interface RequisitionItemCardProps {
   item: RequisitionItem;
   index: number;
   canRemove: boolean;
-  updateItem: (index: number, field: keyof RequisitionItem, value: any) => void;
+  errors?: Partial<Record<keyof RequisitionItem, string>>;
+  updateItem: <K extends keyof RequisitionItem>(index: number, field: K, value: RequisitionItem[K]) => void;
   removeItem: (index: number) => void;
 }
 
@@ -31,6 +32,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
   item,
   index,
   canRemove,
+  errors,
   updateItem,
   removeItem,
 }) => {
@@ -44,8 +46,14 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
   const handlers = React.useMemo(() => ({
     onItemCodeChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'itemCode', e.target.value),
     onDescriptionChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'description', e.target.value),
-    onQuantityChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'quantity', parseFloat(e.target.value)),
-    onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'price', parseFloat(e.target.value)),
+    onQuantityChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseFloat(e.target.value);
+      updateItem(index, 'quantity', isNaN(val) ? 0 : val);
+    },
+    onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseFloat(e.target.value);
+      updateItem(index, 'price', isNaN(val) ? 0 : val);
+    },
     onOsNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'osNumber', e.target.value),
     onUsageLocationChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'usageLocation', e.target.value),
     onOriginTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'originType', e.target.value),
@@ -60,6 +68,8 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
     onBuyerObservationChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'buyerObservation', e.target.value),
     onProviderObservationChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'providerObservation', e.target.value),
   }), [index, updateItem]);
+
+  const itemSubtotal = (Number(item.quantity) || 0) * (Number(item.price) || 0);
 
   return (
     <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
@@ -82,8 +92,9 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             onClick={() => removeItem(index)}
             className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
             title="Remover Item"
+            aria-label={`Remover Item ${index + 1}`}
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-5 h-5" aria-hidden="true" />
           </button>
         )}
       </div>
@@ -104,6 +115,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               label="Descrição Detalhada"
               value={item.description}
               onChange={handlers.onDescriptionChange}
+              error={errors?.description}
               placeholder="Descreva o material ou serviço com detalhes..."
               rows={2}
               required
@@ -111,23 +123,33 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
           <Input
             label="Quantidade"
             type="number"
             step="0.01"
+            min="0"
             value={item.quantity}
             onChange={handlers.onQuantityChange}
+            error={errors?.quantity}
             required
           />
           <Input
             label="Preço Unit. Estimado (R$)"
             type="number"
             step="0.01"
+            min="0"
             value={item.price}
             onChange={handlers.onPriceChange}
+            error={errors?.price}
             required
           />
+          <div className="mb-4">
+            <span className="block text-sm font-medium text-gray-700 mb-1">Subtotal Estimado</span>
+            <div className="block w-full rounded-md border border-gray-200 bg-gray-50 p-2 sm:text-sm font-semibold text-gray-800 shadow-sm">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(itemSubtotal)}
+            </div>
+          </div>
           <Input
             label="Número da OS"
             value={item.osNumber || ''}
@@ -160,6 +182,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.originType}
               onChange={handlers.onOriginTypeChange}
               options={ORIGIN_TYPES}
+              error={errors?.originType}
               required
             />
 
@@ -169,6 +192,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
                 value={item.agreementType}
                 onChange={handlers.onAgreementTypeChange}
                 options={AGREEMENT_TYPES}
+                error={errors?.agreementType}
                 required
               />
               {item.agreementType !== 'Selecione' && !item.agreement && (
@@ -208,6 +232,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.objective}
               onChange={handlers.onObjectiveChange}
               options={RC_OBJECTIVES}
+              error={errors?.objective}
               required
             />
             <Select
@@ -215,6 +240,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.usageIntent}
               onChange={handlers.onUsageIntentChange}
               options={USAGE_INTENTS}
+              error={errors?.usageIntent}
               required
             />
             <Select
@@ -222,6 +248,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               value={item.destinationType}
               onChange={handlers.onDestinationTypeChange}
               options={DESTINATION_TYPES}
+              error={errors?.destinationType}
               required
             />
             <Select
@@ -244,6 +271,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               label="Justificativa Técnica"
               value={item.justification}
               onChange={handlers.onJustificationChange}
+              error={errors?.justification}
               placeholder="Explique a necessidade, aplicação e impacto..."
               rows={4}
               required

@@ -3,15 +3,15 @@ import { describe, it, expect } from 'vitest';
 import { EngieLogo } from './Logo';
 
 describe('EngieLogo Component', () => {
-  const githubUrl = "https://raw.githubusercontent.com/felipepandrade/Formulario_RC/main/Logo-Principal-Azul-Fundo-Transparente.png";
+  const localUrl = "/engie-logo.svg";
   const wikimediaUrl = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Engie_logo.svg";
 
-  it('renders with the initial GitHub URL and alt text', () => {
+  it('renders with the local SVG URL and alt text', () => {
     render(<EngieLogo />);
     const img = screen.getByRole('img', { name: 'ENGIE' });
 
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', githubUrl);
+    expect(img).toHaveAttribute('src', localUrl);
     expect(img).toHaveClass('h-24 w-auto');
   });
 
@@ -20,7 +20,7 @@ describe('EngieLogo Component', () => {
     const img = screen.getByRole('img', { name: 'ENGIE' });
 
     // Initial state
-    expect(img).toHaveAttribute('src', githubUrl);
+    expect(img).toHaveAttribute('src', localUrl);
 
     // Simulate error
     fireEvent.error(img);
