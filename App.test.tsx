@@ -2,6 +2,15 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
+import { USAGE_INTENTS, RC_OBJECTIVES } from './constants';
+
+vi.mock('./constants', async () => {
+  const actual = await vi.importActual<typeof import('./constants')>('./constants');
+  return {
+    ...actual,
+    EMAIL_MAPPING: { ...actual.EMAIL_MAPPING, ESOM_F_CATU_OI: '' },
+  };
+});
 
 describe('App', () => {
   beforeEach(() => {
@@ -112,6 +121,25 @@ describe('App', () => {
 
       const errorMessages = screen.getAllByText(/Solicitante é obrigatório/i);
       expect(errorMessages.length).toBeGreaterThanOrEqual(1);
+    });
+    it('shows an error when the selected location has no mapped e-mail', () => {
+      render(<App />);
+
+      fireEvent.change(screen.getByLabelText(/Solicitante/i), { target: { value: 'Fulano' } });
+      fireEvent.change(screen.getByLabelText(/Local para Entrega/i), { target: { value: 'ESOM_F_CATU_OI' } });
+      fireEvent.change(screen.getByLabelText(/Descrição Detalhada/i), { target: { value: 'Item de teste' } });
+      fireEvent.change(screen.getByLabelText(/Quantidade/i), { target: { value: '5' } });
+      fireEvent.change(screen.getByLabelText(/Preço Unit/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/Tipo de Origem/i), { target: { value: 'Fornecedor' } });
+      fireEvent.change(screen.getByLabelText(/Tipo de Acordo/i), { target: { value: 'Acordo de compra contratual' } });
+      fireEvent.change(screen.getByLabelText(/Tipo de Destino/i), { target: { value: 'Despesa' } });
+      fireEvent.change(screen.getByLabelText(/Uso Pretendido/i), { target: { value: USAGE_INTENTS[1].value } });
+      fireEvent.change(screen.getByLabelText(/Objetivo da RC/i), { target: { value: RC_OBJECTIVES[1].value } });
+      fireEvent.change(screen.getByLabelText(/Justificativa Técnica/i), { target: { value: 'Necessário para teste' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /Abrir no Outlook/i }));
+
+      expect(screen.getByText('E-mail não encontrado para a base selecionada.')).toBeInTheDocument();
     });
   });
 });
