@@ -1,7 +1,51 @@
 @import 'tailwindcss';
 
+/*
+  Colors and type follow ENGIE's Fluid Design System (@engie-group/fluid-design-tokens, light theme).
+  `brand` is the ENGIE blue scale (600 = #007BC5, the logo color); gray, red, green and orange
+  replace Tailwind's defaults with Fluid's neutral and status scales.
+*/
 @theme {
-  --font-sans: Inter, sans-serif;
+  --font-sans: Lato, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --color-brand-50: #f5f8fd;
+  --color-brand-100: #e9f0fb;
+  --color-brand-200: #bfd4f5;
+  --color-brand-300: #7eaee9;
+  --color-brand-500: #3c8dd6;
+  --color-brand-600: #007bc5;
+  --color-brand-700: #005c9a;
+  --color-brand-800: #004573;
+  --color-brand-900: #0a2d4b;
+
+  --color-gray-50: #f6f8f9;
+  --color-gray-100: #ebeef1;
+  --color-gray-200: #dde3e8;
+  --color-gray-300: #ccd4da;
+  --color-gray-400: #9eadb8;
+  --color-gray-500: #778c9b;
+  --color-gray-600: #60798b;
+  --color-gray-700: #435c6e;
+  --color-gray-800: #334551;
+  --color-gray-900: #232d35;
+
+  --color-red-50: #fff7f5;
+  --color-red-100: #ffeae5;
+  --color-red-200: #ffc5b9;
+  --color-red-500: #f34e46;
+  --color-red-600: #db3735;
+  --color-red-700: #aa2424;
+  --color-red-800: #7f1d1b;
+
+  --color-green-50: #f3faf4;
+  --color-green-200: #aedfb3;
+  --color-green-600: #008836;
+  --color-green-800: #004d1c;
+
+  --color-orange-50: #fff5ed;
+  --color-orange-200: #ffc89d;
+  --color-orange-600: #bc5921;
+  --color-orange-700: #8e441a;
 }
 
 /*
@@ -26,9 +70,24 @@
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+
+  html {
+    scroll-padding-bottom: 7rem; /* keeps focused fields clear of the sticky action bar */
+  }
+
+  body {
+    background-color: var(--color-gray-50);
+    color: var(--color-gray-900);
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f3f4f6;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

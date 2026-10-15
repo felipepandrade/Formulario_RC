@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Package, FileText } from 'lucide-react';
+import { Trash2, Package, FileText, MessageSquareText, Info, LucideIcon } from 'lucide-react';
 import { RequisitionItem } from '../types';
 import { Input, Select, TextArea } from './InputFields';
 import {
@@ -11,7 +11,7 @@ import {
   RC_OBJECTIVES,
 } from '../constants';
 import { formatBRL, sanitizeDecimalInput } from '../utils/format';
-import { itemSubtotal } from '../utils/items';
+import { itemSubtotal, SELECT_PLACEHOLDER } from '../utils/items';
 import { ItemErrors } from '../utils/validation';
 
 interface RequisitionItemCardProps {
@@ -31,6 +31,13 @@ interface RequisitionItemCardProps {
 // This prevents invalidating React.memo cache for all existing items when a new item is added.
 // Because canRemove is typically true for all items, adding an Nth item doesn't change the props of items 1 to N-1.
 // Expected Impact: Adding/removing items becomes an O(1) operation for existing items rather than triggering O(N) re-renders.
+const SectionTitle: React.FC<{ icon: LucideIcon; children: React.ReactNode }> = ({ icon: Icon, children }) => (
+  <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-brand-800">
+    <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
+    {children}
+  </h4>
+);
+
 const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
   item,
   index,
@@ -72,93 +79,114 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
 
   const subtotal = itemSubtotal(item);
 
+  const agreementHint =
+    item.agreementType !== SELECT_PLACEHOLDER && !item.agreement ? (
+      <span className="inline-flex items-start gap-1.5 text-orange-700">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        Recomendado preencher o campo "Acordo".
+      </span>
+    ) : undefined;
+
   return (
-    <div className="bg-white shadow-xs rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+    <section
+      aria-labelledby={`item-${item.id}-title`}
+      data-item-card
+      className="bg-white rounded-xl border border-gray-200 shadow-xs scroll-mt-6"
+    >
       {/* Item Header */}
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-sky-600 text-white font-bold text-sm shadow-xs">
+      <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white"
+            aria-hidden="true"
+          >
             {index + 1}
           </span>
-          <div>
-            <h3 className="text-lg font-bold text-gray-800">Item da Requisição</h3>
-            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
-              {item.itemCode || 'Novo Item'}
-            </p>
+          <div className="min-w-0">
+            <h3 id={`item-${item.id}-title`} className="text-lg font-bold text-gray-900">
+              <span className="sr-only">{`${index + 1}º `}</span>Item da Requisição
+            </h3>
+            <p className="truncate text-sm text-gray-600">{item.itemCode || 'Novo item'}</p>
           </div>
         </div>
-        {canRemove && (
-          <button
-            type="button"
-            onClick={() => removeItem(index)}
-            className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
-            title="Remover Item"
-            aria-label={`Remover Item ${index + 1}`}
-          >
-            <Trash2 className="w-5 h-5" aria-hidden="true" />
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <div className="hidden text-right sm:block">
+            <p className="text-xs text-gray-600">Subtotal</p>
+            <p className="font-bold text-gray-900 tabular-nums">{formatBRL(subtotal)}</p>
+          </div>
+          {canRemove && (
+            <button
+              type="button"
+              onClick={() => removeItem(index)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-red-200"
+              title="Remover Item"
+              aria-label={`Remover Item ${index + 1}`}
+            >
+              <Trash2 className="w-5 h-5" aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        {/* Row 1: Basic Info */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-3">
-            <Input
-              label="Código do Item"
-              value={item.itemCode}
-              onChange={handlers.onItemCodeChange}
-              placeholder="Opcional"
-            />
-          </div>
-          <div className="md:col-span-9">
-            <TextArea
-              label="Descrição Detalhada"
-              value={item.description}
-              onChange={handlers.onDescriptionChange}
-              error={errors?.description}
-              placeholder="Descreva o material ou serviço com detalhes..."
-              rows={2}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-          <Input
-            label="Quantidade"
-            inputMode="decimal"
-            autoComplete="off"
-            value={item.quantity}
-            onChange={handlers.onQuantityChange}
-            error={errors?.quantity}
-            required
-          />
-          <Input
-            label="Preço Unit. Estimado (R$)"
-            inputMode="decimal"
-            autoComplete="off"
-            placeholder="0,00"
-            value={item.price}
-            onChange={handlers.onPriceChange}
-            error={errors?.price}
-            required
-          />
-          <div className="mb-4">
-            <span className="block text-sm font-medium text-gray-700 mb-1">Subtotal Estimado</span>
-            <div className="block w-full rounded-md border border-gray-200 bg-gray-50 p-2 sm:text-sm font-semibold text-gray-800 shadow-xs">
-              {formatBRL(subtotal)}
+      <div className="divide-y divide-gray-100 px-5 sm:px-6">
+        {/* What is being requested */}
+        <div className="space-y-5 py-6">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-12">
+            <div className="md:col-span-3">
+              <Input
+                label="Código do Item"
+                value={item.itemCode}
+                onChange={handlers.onItemCodeChange}
+                placeholder="Opcional"
+              />
+            </div>
+            <div className="md:col-span-9">
+              <TextArea
+                label="Descrição Detalhada"
+                value={item.description}
+                onChange={handlers.onDescriptionChange}
+                error={errors?.description}
+                placeholder="Descreva o material ou serviço com detalhes..."
+                rows={2}
+                required
+              />
             </div>
           </div>
-          <Input
-            label="Número da OS"
-            value={item.osNumber || ''}
-            onChange={handlers.onOsNumberChange}
-            placeholder="Se houver"
-          />
-        </div>
 
-        <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 items-start gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+            <Input
+              label="Quantidade"
+              inputMode="decimal"
+              autoComplete="off"
+              value={item.quantity}
+              onChange={handlers.onQuantityChange}
+              error={errors?.quantity}
+              required
+            />
+            <Input
+              label="Preço Unit. Estimado (R$)"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0,00"
+              value={item.price}
+              onChange={handlers.onPriceChange}
+              error={errors?.price}
+              required
+            />
+            <div>
+              <span className="mb-1.5 block text-sm font-bold text-gray-800">Subtotal Estimado</span>
+              <div className="flex h-11 w-full items-center rounded-lg bg-brand-50 px-3 font-bold text-brand-800 tabular-nums">
+                {formatBRL(subtotal)}
+              </div>
+            </div>
+            <Input
+              label="Número da OS"
+              value={item.osNumber || ''}
+              onChange={handlers.onOsNumberChange}
+              placeholder="Se houver"
+            />
+          </div>
+
           <Input
             label="Local de Utilização - Nome da Instalação/Gasoduto"
             value={item.usageLocation || ''}
@@ -167,16 +195,10 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           />
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-100"></div>
-
         {/* Origin & Agreement */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Package className="w-4 h-4 text-sky-600" />
-            <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Origem & Acordo</h4>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="py-6">
+          <SectionTitle icon={Package}>Origem e acordo</SectionTitle>
+          <div className="grid grid-cols-1 items-start gap-x-6 gap-y-5 md:grid-cols-3">
             <Select
               label="Tipo de Origem"
               value={item.originType}
@@ -185,48 +207,36 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               error={errors?.originType}
               required
             />
-
-            <div>
-              <Select
-                label="Tipo de Acordo"
-                value={item.agreementType}
-                onChange={handlers.onAgreementTypeChange}
-                options={AGREEMENT_TYPES}
-                error={errors?.agreementType}
-                required
-              />
-              {item.agreementType !== 'Selecione' && !item.agreement && (
-                <p className="text-xs text-yellow-600 mt-[-10px] mb-2 font-medium">⚠ Recomendado preencher "Acordo"</p>
-              )}
-            </div>
-
+            <Select
+              label="Tipo de Acordo"
+              value={item.agreementType}
+              onChange={handlers.onAgreementTypeChange}
+              options={AGREEMENT_TYPES}
+              error={errors?.agreementType}
+              hint={agreementHint}
+              required
+            />
             <Input
               label="Acordo"
               value={item.agreement || ''}
               onChange={handlers.onAgreementChange}
               placeholder="Ex: AC288ESOM"
             />
-          </div>
-          <div className="mt-4">
-            <Input
-              label="Fornecedor Sugerido"
-              value={item.provider || ''}
-              onChange={handlers.onProviderChange}
-              placeholder="Nome do Fornecedor"
-            />
+            <div className="md:col-span-3">
+              <Input
+                label="Fornecedor Sugerido"
+                value={item.provider || ''}
+                onChange={handlers.onProviderChange}
+                placeholder="Nome do Fornecedor"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-100"></div>
-
         {/* Classification */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-4 h-4 text-sky-600" />
-            <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Classificação & Destino</h4>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="py-6">
+          <SectionTitle icon={FileText}>Classificação e destino</SectionTitle>
+          <div className="grid grid-cols-1 items-start gap-x-6 gap-y-5 md:grid-cols-2 lg:grid-cols-4">
             <Select
               label="Objetivo da RC"
               value={item.objective}
@@ -260,13 +270,10 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-100"></div>
-
         {/* Justification & Observations */}
-        <div className="grid grid-cols-1 gap-6">
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">Justificativa & Observações</h4>
+        <div className="py-6">
+          <SectionTitle icon={MessageSquareText}>Justificativa e observações</SectionTitle>
+          <div className="space-y-5">
             <TextArea
               label="Justificativa Técnica"
               value={item.justification}
@@ -276,7 +283,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
               rows={4}
               required
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <TextArea
                 label="Obs. ao Comprador"
                 value={item.buyerObservation}
@@ -295,7 +302,7 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

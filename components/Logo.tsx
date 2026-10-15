@@ -1,28 +1,22 @@
+// Official ENGIE logo, "standard" format, as published in ENGIE's Fluid Design System
+// (@engie-group/fluid-design-system-react 6.3.1, component NJLogo). Inlined so it renders
+// offline and never depends on a network request. The same artwork is in public/engie-logo.svg.
+const ENGIE_LOGO_PATH =
+  'M23.59 98.07c0-8.7 8.93-15.13 21.84-15.13s21.24 6.43 21.24 15.13zm59.12 12.25c3.07-23.48-6.96-39.25-37.68-39.25-23.66 0-38.76 11.08-38.76 33.33 0 35.57 43.54 38.7 73.1 29.26l-2.56-11.62c-4.57 1.56-46.96 10.13-53.22-11.73h59.12Zm70.69 2.32V72.6h16.04v63.97l-14.23-.01-44-41.82.01 41.83H95.18V72.6h16.04zm100.24-25.32c-46.96-10.71-55.55.34-55.55 17.2 0 14.22 12.14 23.35 44.48 19.73v-13.9h-23.91v-12.3h39.88v23.91c0 5.89-2.65 9.43-6.73 11.63-6.36 3.43-15.62 4.45-27.22 4.45-23.95 0-43.3-11.07-43.3-33.52 0-19.9 13.2-33.45 40.51-33.45 13.18 0 22.8 1.73 31.85 4.21v12.03Zm17.5 2.28h16.08v46.97h-16.08zm0-17.01h16.08v11.65h-16.08zm45.62 25.48c0-8.7 8.93-15.13 21.84-15.13s21.24 6.43 21.24 15.13h-43.09Zm59.12 12.25c3.07-23.48-6.96-39.25-37.68-39.25-23.66 0-38.76 11.08-38.76 33.33 0 35.57 43.54 38.7 73.1 29.26l-2.56-11.62c-4.57 1.56-46.96 10.13-53.22-11.73h59.12ZM382.68 55.5C331.4 20.95 264.51 0 191.34 0S51.28 20.95 0 55.5c51-17.11 110.62-28.54 191.34-28.54S331.68 38.39 382.68 55.5';
 
-import { useState } from 'react';
+// ENGIE blue (Fluid token --nj-core-color-engie-blue).
+export const ENGIE_BLUE = '#007BC5';
 
-// Logo oficial vetorial armazenado localmente para suporte offline e segurança de rede
-const LOCAL_LOGO_URL = "/engie-logo.svg";
-// Fallback caso necessário
-const WIKIMEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Engie_logo.svg";
-
-const LOGO_STYLE: React.CSSProperties = { objectFit: 'contain' };
-
-export const EngieLogo = ({ className = "h-24 w-auto" }: { className?: string }) => {
-  const [imgSrc, setImgSrc] = useState(LOCAL_LOGO_URL);
-
-  return (
-    <img
-      src={imgSrc}
-      alt="ENGIE"
-      className={className}
-      style={LOGO_STYLE}
-      onError={() => {
-        // Se der erro no link do GitHub, muda automaticamente para o da Wikimedia
-        if (imgSrc !== WIKIMEDIA_LOGO_URL) {
-          setImgSrc(WIKIMEDIA_LOGO_URL);
-        }
-      }}
-    />
-  );
-};
+export const EngieLogo = ({ className = 'h-24 w-auto' }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 382.68 138.23"
+    className={className}
+    fill={ENGIE_BLUE}
+    role="img"
+    aria-label="ENGIE"
+  >
+    <title>ENGIE</title>
+    <path d={ENGIE_LOGO_PATH} />
+  </svg>
+);
