@@ -29,3 +29,10 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # E-mails fictícios (Base64 de ci@example.com) só para o build passar no CI.
+          VITE_EMAIL_CATU_OI: Y2lAZXhhbXBsZS5jb20=
+          VITE_EMAIL_CAMACARI_OI: Y2lAZXhhbXBsZS5jb20=
+          VITE_EMAIL_ITABUNA_OI: Y2lAZXhhbXBsZS5jb20=
+          VITE_EMAIL_PILAR_OI: Y2lAZXhhbXBsZS5jb20=
+          VITE_EMAIL_ATALAIA_OI: Y2lAZXhhbXBsZS5jb20=
