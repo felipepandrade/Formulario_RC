@@ -1,4 +1,6 @@
 import { RequisitionItem } from '../types';
+import { formatBRL, formatQuantity, parseDecimal } from './format';
+import { isUnselected, itemSubtotal, requisitionTotal } from './items';
 
 /**
  * Formats the requisition data into a plain text email body.
@@ -28,8 +30,9 @@ export function formatRequisitionEmail(
     bodyParts.push(`CÓDIGO: ${item.itemCode || 'A DEFINIR'}\n`);
     bodyParts.push(`DESCRIÇÃO:\n${item.description}\n\n`);
 
-    bodyParts.push(`QUANTIDADE: ${item.quantity}\n`);
-    bodyParts.push(`PREÇO EST.: R$ ${item.price.toFixed(2)}\n`);
+    bodyParts.push(`QUANTIDADE: ${formatQuantity(parseDecimal(item.quantity))}\n`);
+    bodyParts.push(`PREÇO UNIT. EST.: ${formatBRL(parseDecimal(item.price))}\n`);
+    bodyParts.push(`SUBTOTAL EST.: ${formatBRL(itemSubtotal(item))}\n`);
     bodyParts.push(`OS: ${item.osNumber || 'N/A'}\n`);
     if (item.usageLocation) bodyParts.push(`LOCAL DE UTILIZAÇÃO: ${item.usageLocation}\n`);
 
@@ -43,7 +46,7 @@ export function formatRequisitionEmail(
     bodyParts.push(`OBJETIVO: ${item.objective}\n`);
     bodyParts.push(`USO PRETENDIDO: ${item.usageIntent}\n`);
     bodyParts.push(`TIPO DESTINO: ${item.destinationType}\n`);
-    if (item.subInventory) bodyParts.push(`SUBINVENTÁRIO: ${item.subInventory}\n`);
+    if (!isUnselected(item.subInventory)) bodyParts.push(`SUBINVENTÁRIO: ${item.subInventory}\n`);
 
     bodyParts.push(`\n--- JUSTIFICATIVA ---\n`);
     bodyParts.push(`${item.justification}\n`);
@@ -63,6 +66,9 @@ export function formatRequisitionEmail(
     bodyParts.push(`\n\n`);
   });
 
+  bodyParts.push(`--------------------------------------------------\n`);
+  bodyParts.push(`VALOR TOTAL ESTIMADO: ${formatBRL(requisitionTotal(items))}\n`);
+  bodyParts.push(`--------------------------------------------------\n\n`);
   bodyParts.push(`Email gerado automaticamente pelo Sistema ESOM.\n`);
 
   return bodyParts.join('');

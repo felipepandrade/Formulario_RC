@@ -8,8 +8,8 @@ const mockItem: RequisitionItem = {
   id: '1',
   itemCode: 'ITEM001',
   description: 'Test Description',
-  quantity: 10,
-  price: 100.5,
+  quantity: '10',
+  price: '100.5',
   usageLocation: 'Test Location',
   originType: 'Fornecedor',
   agreementType: 'Acordo de compra contratual',
@@ -84,7 +84,25 @@ describe('RequisitionItemCard', () => {
 
     const input = screen.getByDisplayValue('10');
     fireEvent.change(input, { target: { value: '20' } });
-    expect(mockUpdateItem).toHaveBeenCalledWith(0, 'quantity', 20);
+    expect(mockUpdateItem).toHaveBeenCalledWith(0, 'quantity', '20');
+  });
+
+  it('lets the quantity be cleared and drops characters that are not part of a number', () => {
+    render(
+      <RequisitionItemCard
+        item={mockItem}
+        index={0}
+        canRemove={true}
+        updateItem={mockUpdateItem}
+        removeItem={mockRemoveItem}
+      />
+    );
+
+    const input = screen.getByDisplayValue('10');
+    fireEvent.change(input, { target: { value: '' } });
+    expect(mockUpdateItem).toHaveBeenCalledWith(0, 'quantity', '');
+    fireEvent.change(input, { target: { value: '-2,5a' } });
+    expect(mockUpdateItem).toHaveBeenCalledWith(0, 'quantity', '2,5');
   });
 
   it('calls updateItem when a select field changes', () => {

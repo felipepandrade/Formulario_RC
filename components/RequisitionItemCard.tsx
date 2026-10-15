@@ -10,12 +10,15 @@ import {
   USAGE_INTENTS,
   RC_OBJECTIVES,
 } from '../constants';
+import { formatBRL, sanitizeDecimalInput } from '../utils/format';
+import { itemSubtotal } from '../utils/items';
+import { ItemErrors } from '../utils/validation';
 
 interface RequisitionItemCardProps {
   item: RequisitionItem;
   index: number;
   canRemove: boolean;
-  errors?: Partial<Record<keyof RequisitionItem, string>>;
+  errors?: ItemErrors;
   updateItem: <K extends keyof RequisitionItem>(index: number, field: K, value: RequisitionItem[K]) => void;
   removeItem: (index: number) => void;
 }
@@ -46,14 +49,12 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
   const handlers = React.useMemo(() => ({
     onItemCodeChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'itemCode', e.target.value),
     onDescriptionChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'description', e.target.value),
-    onQuantityChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = parseFloat(e.target.value);
-      updateItem(index, 'quantity', isNaN(val) ? 0 : val);
-    },
-    onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = parseFloat(e.target.value);
-      updateItem(index, 'price', isNaN(val) ? 0 : val);
-    },
+    // Keep the text as typed (so the field can be cleared and accepts "1.500,50");
+    // it is only converted to a number for the subtotal, validation and e-mail.
+    onQuantityChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateItem(index, 'quantity', sanitizeDecimalInput(e.target.value)),
+    onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateItem(index, 'price', sanitizeDecimalInput(e.target.value)),
     onOsNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'osNumber', e.target.value),
     onUsageLocationChange: (e: React.ChangeEvent<HTMLInputElement>) => updateItem(index, 'usageLocation', e.target.value),
     onOriginTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => updateItem(index, 'originType', e.target.value),
@@ -69,14 +70,14 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
     onProviderObservationChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => updateItem(index, 'providerObservation', e.target.value),
   }), [index, updateItem]);
 
-  const itemSubtotal = (Number(item.quantity) || 0) * (Number(item.price) || 0);
+  const subtotal = itemSubtotal(item);
 
   return (
-    <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+    <div className="bg-white shadow-xs rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
       {/* Item Header */}
       <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-sky-600 text-white font-bold text-sm shadow-sm">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-sky-600 text-white font-bold text-sm shadow-xs">
             {index + 1}
           </span>
           <div>
@@ -126,9 +127,8 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
           <Input
             label="Quantidade"
-            type="number"
-            step="0.01"
-            min="0"
+            inputMode="decimal"
+            autoComplete="off"
             value={item.quantity}
             onChange={handlers.onQuantityChange}
             error={errors?.quantity}
@@ -136,9 +136,9 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           />
           <Input
             label="Preço Unit. Estimado (R$)"
-            type="number"
-            step="0.01"
-            min="0"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0,00"
             value={item.price}
             onChange={handlers.onPriceChange}
             error={errors?.price}
@@ -146,8 +146,8 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
           />
           <div className="mb-4">
             <span className="block text-sm font-medium text-gray-700 mb-1">Subtotal Estimado</span>
-            <div className="block w-full rounded-md border border-gray-200 bg-gray-50 p-2 sm:text-sm font-semibold text-gray-800 shadow-sm">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(itemSubtotal)}
+            <div className="block w-full rounded-md border border-gray-200 bg-gray-50 p-2 sm:text-sm font-semibold text-gray-800 shadow-xs">
+              {formatBRL(subtotal)}
             </div>
           </div>
           <Input
