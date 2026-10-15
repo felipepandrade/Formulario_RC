@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 // Recipient e-mails (Base64) required for each location. See .env.example.
 const REQUIRED_EMAIL_VARS = [
   'VITE_EMAIL_CATU_OI',
+  'VITE_EMAIL_R_CATU_OI',
   'VITE_EMAIL_CAMACARI_OI',
   'VITE_EMAIL_ITABUNA_OI',
   'VITE_EMAIL_PILAR_OI',
