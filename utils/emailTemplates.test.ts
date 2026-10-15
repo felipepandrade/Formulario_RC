@@ -7,8 +7,8 @@ describe('formatRequisitionEmail', () => {
     id: '1',
     itemCode: 'CODE123',
     description: 'Test Description',
-    quantity: 5,
-    price: 10.5,
+    quantity: '5',
+    price: '10,5',
     usageLocation: 'Test Location',
     originType: 'Fornecedor',
     agreementType: 'Acordo de compra contratual',
@@ -41,7 +41,8 @@ describe('formatRequisitionEmail', () => {
     expect(result).toContain('CÓDIGO: CODE123');
     expect(result).toContain('DESCRIÇÃO:\nTest Description');
     expect(result).toContain('QUANTIDADE: 5');
-    expect(result).toContain('PREÇO EST.: R$ 10.50');
+    expect(result).toContain('PREÇO UNIT. EST.: R$ 10,50');
+    expect(result).toContain('SUBTOTAL EST.: R$ 52,50');
     expect(result).toContain('OS: OS-999');
     expect(result).toContain('LOCAL DE UTILIZAÇÃO: Test Location');
     expect(result).toContain('ORIGEM: Fornecedor');
@@ -68,6 +69,21 @@ describe('formatRequisitionEmail', () => {
     expect(result).toContain('================ ITEM #2 ================');
     expect(result).toContain('CÓDIGO: CODE123');
     expect(result).toContain('CÓDIGO: CODE456');
+    expect(result).toContain('VALOR TOTAL ESTIMADO: R$ 105,00');
+  });
+
+  it('formats large values in the Brazilian format', () => {
+    const result = formatRequisitionEmail('John', 'Base', [{ ...mockItem, quantity: '1.500', price: '1.234,56' }]);
+
+    expect(result).toContain('QUANTIDADE: 1.500');
+    expect(result).toContain('PREÇO UNIT. EST.: R$ 1.234,56');
+    expect(result).toContain('SUBTOTAL EST.: R$ 1.851.840,00');
+  });
+
+  it('omits the sub-inventory when it was left on "Selecione"', () => {
+    const result = formatRequisitionEmail('John', 'Base', [{ ...mockItem, subInventory: 'Selecione' }]);
+
+    expect(result).not.toContain('SUBINVENTÁRIO:');
   });
 
   it('should handle missing optional fields', () => {

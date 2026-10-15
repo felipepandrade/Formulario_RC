@@ -3,8 +3,8 @@ export interface RequisitionItem {
   id: string;
   itemCode: string; // "Item"
   description: string;
-  quantity: number;
-  price: number;
+  quantity: string; // raw text typed by the user, parsed with parseDecimal
+  price: string; // raw text typed by the user, parsed with parseDecimal
   usageLocation: string; // Local de Utilização - Nome da Instalação/Gasoduto
   originType: string;
   agreementType: string;
