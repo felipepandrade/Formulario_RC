@@ -10,6 +10,7 @@ describe('EMAIL_MAPPING', () => {
 
   it('should decode Base64 environment variables', async () => {
     vi.stubEnv('VITE_EMAIL_CATU_OI', btoa('test@catu.com'));
+    vi.stubEnv('VITE_EMAIL_R_CATU_OI', btoa('test@catu-ecomp.com'));
     vi.stubEnv('VITE_EMAIL_CAMACARI_OI', btoa('test@camacari.com'));
     vi.stubEnv('VITE_EMAIL_ITABUNA_OI', btoa('test@itabuna.com'));
     vi.stubEnv('VITE_EMAIL_PILAR_OI', btoa('test@pilar.com'));
@@ -19,6 +20,7 @@ describe('EMAIL_MAPPING', () => {
     const { EMAIL_MAPPING } = await import('./constants');
 
     expect(EMAIL_MAPPING['ESOM_F_CATU_OI']).toBe('test@catu.com');
+    expect(EMAIL_MAPPING['ESOM_R_CATU_OI']).toBe('test@catu-ecomp.com');
     expect(EMAIL_MAPPING['ESOM_F_CAMACARI_OI']).toBe('test@camacari.com');
     expect(EMAIL_MAPPING['ESOM_F_ITABUNA_OI']).toBe('test@itabuna.com');
     expect(EMAIL_MAPPING['ESOM_F_PILAR_OI']).toBe('test@pilar.com');

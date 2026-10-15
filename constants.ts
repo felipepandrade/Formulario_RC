@@ -1,6 +1,7 @@
 export const LOCATIONS = [
   { label: 'Selecione', value: 'Selecione' },
   { label: 'ESOM_F_CATU_OI', value: 'ESOM_F_CATU_OI' },
+  { label: 'ESOM_R_CATU_OI', value: 'ESOM_R_CATU_OI' },
   { label: 'ESOM_F_CAMACARI_OI', value: 'ESOM_F_CAMACARI_OI' },
   { label: 'ESOM_F_ITABUNA_OI', value: 'ESOM_F_ITABUNA_OI' },
   { label: 'ESOM_F_PILAR_OI', value: 'ESOM_F_PILAR_OI' },
@@ -79,6 +80,7 @@ const decodeEmail = (encoded: string): string => {
 // See .env.example for required variables.
 export const EMAIL_MAPPING: Record<string, string> = {
   'ESOM_F_CATU_OI': decodeEmail(import.meta.env.VITE_EMAIL_CATU_OI),
+  'ESOM_R_CATU_OI': decodeEmail(import.meta.env.VITE_EMAIL_R_CATU_OI),
   'ESOM_F_CAMACARI_OI': decodeEmail(import.meta.env.VITE_EMAIL_CAMACARI_OI),
   'ESOM_F_ITABUNA_OI': decodeEmail(import.meta.env.VITE_EMAIL_ITABUNA_OI),
   'ESOM_F_PILAR_OI': decodeEmail(import.meta.env.VITE_EMAIL_PILAR_OI),
