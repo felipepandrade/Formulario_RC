@@ -1,63 +1,42 @@
-
+import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import React from 'react';
 import App from './App';
 
-let inputRenderCount = 0;
-let selectRenderCount = 0;
+// Counts renders of the requester and location fields, which do not depend on the items.
+const renders = { requester: 0, location: 0 };
 
-// Mock the components to track renders
 vi.mock('./components/InputFields', async (importOriginal) => {
-  const actual = await importOriginal<any>();
+  const actual = await importOriginal<typeof import('./components/InputFields')>();
+  type InputProps = React.ComponentProps<typeof actual.Input>;
+  type SelectProps = React.ComponentProps<typeof actual.Select>;
 
-  const MockInput = vi.fn((props: any) => {
-    if (props.label === 'Solicitante') {
-      inputRenderCount++;
-    }
+  const CountingInput = (props: InputProps) => {
+    if (props.label === 'Solicitante') renders.requester++;
     return <actual.Input {...props} />;
-  });
-
-  const MockSelect = vi.fn((props: any) => {
-    if (props.label === 'Local para Entrega') {
-      selectRenderCount++;
-    }
-    return <actual.Select {...props} />;
-  });
-
-  return {
-    ...actual,
-    Input: React.memo(MockInput),
-    Select: React.memo(MockSelect),
   };
+  const CountingSelect = (props: SelectProps) => {
+    if (props.label === 'Local para Entrega') renders.location++;
+    return <actual.Select {...props} />;
+  };
+
+  return { ...actual, Input: React.memo(CountingInput), Select: React.memo(CountingSelect) };
 });
 
-describe('Performance Baseline', () => {
+describe('render performance', () => {
   beforeEach(() => {
-    inputRenderCount = 0;
-    selectRenderCount = 0;
-    vi.clearAllMocks();
+    renders.requester = 0;
+    renders.location = 0;
   });
 
-  it('measures render counts of Input and Select when unrelated state changes', async () => {
+  it('does not re-render the requester and location fields when an item is added', async () => {
     const { getByText } = render(<App />);
-
-    const initialInputCount = inputRenderCount;
-    const initialSelectCount = selectRenderCount;
-
-    console.log(`Baseline - Initial Renders: Input=${initialInputCount}, Select=${initialSelectCount}`);
-
-    // Trigger an unrelated state change (adding an item)
-    const addButton = getByText(/Adicionar Outro Item/i);
+    const before = { ...renders };
 
     await act(async () => {
-      fireEvent.click(addButton);
+      fireEvent.click(getByText(/Adicionar Outro Item/i));
     });
 
-    console.log(`Verified - Renders after adding item: Input=${inputRenderCount}, Select=${selectRenderCount}`);
-
-    // After optimization, these should NOT increase because React.memo skips re-render
-    expect(inputRenderCount).toBe(initialInputCount);
-    expect(selectRenderCount).toBe(initialSelectCount);
+    expect(renders).toEqual(before);
   });
 });

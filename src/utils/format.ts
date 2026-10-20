@@ -31,7 +31,7 @@ const quantityFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits
 
 /** Formats a value as Brazilian currency ("R$ 1.500,50") using a regular space. */
 export const formatBRL = (value: number): string =>
-  currencyFormatter.format(Number.isFinite(value) ? value : 0).replace(/ /g, ' ');
+  currencyFormatter.format(Number.isFinite(value) ? value : 0).replace(/\u00a0/g, ' ');
 
 /** Formats a quantity in the Brazilian format ("1.500", "2,5"). */
 export const formatQuantity = (value: number): string =>
@@ -41,7 +41,7 @@ export const formatQuantity = (value: number): string =>
 export const toFileNameFragment = (value: string): string =>
   value
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '');
 

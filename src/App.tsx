@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { PlusCircle, Mail, AlertCircle, User, Copy, Check, Download, RotateCcw, Save, Info } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
@@ -12,7 +12,7 @@ import { formatRequisitionEmail } from './utils/emailTemplates';
 import { formatBRL, formatShortDateTime, toFileNameFragment } from './utils/format';
 import { createInitialItem, generateId, requisitionTotal, SELECT_PLACEHOLDER } from './utils/items';
 import { errorSummary, FormErrors, validateRequisition } from './utils/validation';
-import { clearDraft, isDraftEmpty, loadDraft, saveDraft } from './utils/draft';
+import { clearDraft, Draft, isDraftEmpty, loadDraft, saveDraft } from './utils/draft';
 
 // Outlook (and Windows, which hands the link to it) fails or truncates mailto: links
 // longer than about 2000 characters.
@@ -99,14 +99,26 @@ export default function App() {
   const [focusErrorRequest, setFocusErrorRequest] = useState(0);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout>>();
+  // Latest items for the stable item callbacks (duplicate/remove), which run after render.
   const itemsRef = useRef(items);
-  itemsRef.current = items;
+  useLayoutEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
-  // Save a draft in this browser so a reload or a closed tab does not lose the form.
+  // Save a draft in this browser so a reload or a closed tab does not lose the form. Saving is
+  // debounced while typing and flushed when the page is hidden or closed.
+  const latestDraft = useRef<Draft>({ requester, location, items, sentAt });
   useEffect(() => {
-    const timer = setTimeout(() => saveDraft({ requester, location, items, sentAt }), DRAFT_SAVE_DELAY_MS);
+    latestDraft.current = { requester, location, items, sentAt };
+    const timer = setTimeout(() => saveDraft(latestDraft.current), DRAFT_SAVE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [requester, location, items, sentAt]);
+
+  useEffect(() => {
+    const flush = () => saveDraft(latestDraft.current);
+    window.addEventListener('pagehide', flush);
+    return () => window.removeEventListener('pagehide', flush);
+  }, []);
 
   useEffect(() => () => clearTimeout(statusTimer.current), []);
 
@@ -292,8 +304,11 @@ export default function App() {
         'A requisição é longa demais para ir pelo link, então o texto completo foi copiado. No e-mail que abriu, apague o texto e cole com Ctrl+V.';
     }
 
+    // Saved right away: people often close the tab as soon as Outlook opens.
+    const openedAt = new Date().toISOString();
+    saveDraft({ requester, location, items, sentAt: openedAt });
+    setSentAt(openedAt);
     window.location.href = mailtoLink;
-    setSentAt(new Date().toISOString());
     showStatus({ text: message, action: newRequisition }, null);
   };
 
