@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -39,12 +40,29 @@ const requireRecipientEmails = (): Plugin => ({
   },
 });
 
+// Headers that Vercel sends for every page (vercel.json), reused by `vite preview` so the
+// end-to-end tests run under the same Content-Security-Policy as production.
+const vercelPageHeaders = (): Record<string, string> => {
+  const config = JSON.parse(readFileSync(new URL('./vercel.json', import.meta.url), 'utf8')) as {
+    headers: { source: string; headers: { key: string; value: string }[] }[];
+  };
+  const page = config.headers.find((entry) => entry.source === '/(.*)');
+  return Object.fromEntries((page?.headers ?? []).map(({ key, value }) => [key, value]));
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), requireRecipientEmails()],
+  define: {
+    __VERCEL_ANALYTICS__: JSON.stringify(process.env.VERCEL === '1'),
+  },
+  preview: {
+    headers: vercelPageHeaders(),
+  },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test-setup.ts',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

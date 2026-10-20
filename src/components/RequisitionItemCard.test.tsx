@@ -28,6 +28,7 @@ const mockItem: RequisitionItem = {
 describe('RequisitionItemCard', () => {
   const mockUpdateItem = vi.fn();
   const mockRemoveItem = vi.fn();
+  const mockDuplicateItem = vi.fn();
 
   it('renders correctly with item data', () => {
     render(
@@ -37,6 +38,7 @@ describe('RequisitionItemCard', () => {
         canRemove={true}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
@@ -63,6 +65,7 @@ describe('RequisitionItemCard', () => {
         canRemove={true}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
@@ -79,6 +82,7 @@ describe('RequisitionItemCard', () => {
         canRemove={true}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
@@ -95,6 +99,7 @@ describe('RequisitionItemCard', () => {
         canRemove={true}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
@@ -113,6 +118,7 @@ describe('RequisitionItemCard', () => {
         canRemove={true}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
@@ -130,6 +136,7 @@ describe('RequisitionItemCard', () => {
         canRemove={true}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
@@ -146,9 +153,52 @@ describe('RequisitionItemCard', () => {
         canRemove={false}
         updateItem={mockUpdateItem}
         removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
       />
     );
 
     expect(screen.queryByTitle('Remover Item')).not.toBeInTheDocument();
+  });
+
+  it('calls duplicateItem when the duplicate button is clicked', () => {
+    render(
+      <RequisitionItemCard
+        item={mockItem}
+        index={2}
+        canRemove={false}
+        updateItem={mockUpdateItem}
+        removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicar Item 3' }));
+    expect(mockDuplicateItem).toHaveBeenCalledWith(2);
+  });
+
+  it('marks the subinventory as required only when the destination is stock', () => {
+    const { rerender } = render(
+      <RequisitionItemCard
+        item={mockItem}
+        index={0}
+        canRemove={false}
+        updateItem={mockUpdateItem}
+        removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
+      />
+    );
+    expect(screen.getByLabelText(/Subinventário/)).not.toBeRequired();
+
+    rerender(
+      <RequisitionItemCard
+        item={{ ...mockItem, destinationType: 'Estoque' }}
+        index={0}
+        canRemove={false}
+        updateItem={mockUpdateItem}
+        removeItem={mockRemoveItem}
+        duplicateItem={mockDuplicateItem}
+      />
+    );
+    expect(screen.getByLabelText(/Subinventário/)).toBeRequired();
   });
 });

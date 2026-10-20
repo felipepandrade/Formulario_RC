@@ -44,3 +44,12 @@ export const toFileNameFragment = (value: string): string =>
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '');
+
+/** Formats an ISO date as "19/10 às 14:30" in the user's time zone, or '' when invalid. */
+export function formatShortDateTime(iso: string | undefined): string {
+  const date = iso ? new Date(iso) : null;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  const day = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${day} às ${time}`;
+}
