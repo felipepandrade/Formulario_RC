@@ -90,7 +90,7 @@ test('desfaz a remoção de um item e duplica itens', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Remover Item 2' }).click();
   await expect(descriptions).toHaveCount(1);
-  await expect(page.getByRole('heading', { name: /1º Item da Requisição/ })).toBeFocused();
+  await expect(page.getByRole('heading', { name: /Item 1 da Requisição/ })).toBeFocused();
 
   await page.getByRole('button', { name: 'Desfazer' }).click();
   await expect(descriptions).toHaveCount(2);

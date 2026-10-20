@@ -93,8 +93,13 @@ const RequisitionItemCard: React.FC<RequisitionItemCardProps> = ({
             {index + 1}
           </span>
           <div className="min-w-0">
-            <h3 id={`item-${item.id}-title`} tabIndex={-1} className="text-lg font-bold text-gray-900 focus:outline-hidden">
-              <span className="sr-only">{`${index + 1}º `}</span>Item da Requisição
+            <h3
+              id={`item-${item.id}-title`}
+              tabIndex={-1}
+              aria-label={`Item ${index + 1} da Requisição`}
+              className="text-lg font-bold text-gray-900 focus:outline-hidden"
+            >
+              Item da Requisição
             </h3>
             <p className="truncate text-sm text-gray-600">{item.itemCode || 'Novo item'}</p>
           </div>

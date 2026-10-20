@@ -98,7 +98,7 @@ export default function App() {
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [focusErrorRequest, setFocusErrorRequest] = useState(0);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
-  const statusTimer = useRef<ReturnType<typeof setTimeout>>();
+  const statusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Latest items for the stable item callbacks (duplicate/remove), which run after render.
   const itemsRef = useRef(items);
   useLayoutEffect(() => {

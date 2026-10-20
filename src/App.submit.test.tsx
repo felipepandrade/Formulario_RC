@@ -121,12 +121,12 @@ describe('App items', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remover Item 1' }));
     expect(screen.getAllByLabelText(/Descrição Detalhada/)).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('Item 1 removido.');
-    await waitFor(() => expect(screen.getByRole('heading', { name: /1º Item da Requisição/ })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Item 1 da Requisição/ })).toHaveFocus());
 
     fireEvent.click(screen.getByRole('button', { name: 'Desfazer' }));
     const restored = screen.getAllByLabelText(/Descrição Detalhada/);
     expect(restored.map((el) => (el as HTMLTextAreaElement).value)).toEqual(['Primeiro', 'Segundo']);
-    await waitFor(() => expect(screen.getByRole('heading', { name: /1º Item da Requisição/ })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Item 1 da Requisição/ })).toHaveFocus());
   });
 
   it('duplicates an item right after it, with all its data', async () => {
