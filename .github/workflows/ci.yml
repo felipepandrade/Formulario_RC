@@ -22,7 +22,7 @@ jobs:
       VITE_EMAIL_ATALAIA_OI: Y2lAZXhhbXBsZS5jb20=
       VITE_EMAIL_R_CATU_OI: Y2lAZXhhbXBsZS5jb20=
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
