@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { formatBRL, formatQuantity, parseDecimal, sanitizeDecimalInput, toFileNameFragment } from './format';
+import {
+  formatBRL,
+  formatQuantity,
+  formatShortDateTime,
+  parseDecimal,
+  sanitizeDecimalInput,
+  toFileNameFragment,
+} from './format';
 
 describe('parseDecimal', () => {
   it.each([
@@ -33,5 +40,11 @@ describe('formatters', () => {
   it('builds safe file names without losing accented letters', () => {
     expect(toFileNameFragment('João da Conceição')).toBe('Joao_da_Conceicao');
     expect(toFileNameFragment('***')).toBe('');
+  });
+
+  it('formats a short date and time, ignoring invalid values', () => {
+    expect(formatShortDateTime(new Date(2026, 9, 19, 14, 30).toISOString())).toBe('19/10 às 14:30');
+    expect(formatShortDateTime(undefined)).toBe('');
+    expect(formatShortDateTime('não é data')).toBe('');
   });
 });

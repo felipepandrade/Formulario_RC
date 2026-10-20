@@ -4,3 +4,5 @@ dev.log
 dev_server.log
 dist/
 .env
+playwright-report/
+test-results/

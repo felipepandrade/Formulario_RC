@@ -59,6 +59,25 @@ describe('App submission', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/texto completo foi copiado/);
   });
 
+  it('warns that the requisition was already opened and starts a new one on request', async () => {
+    const { unmount } = render(<App />);
+    fillValidForm();
+    fireEvent.click(screen.getByRole('button', { name: /Abrir no Outlook/i }));
+
+    await waitFor(() => expect(screen.getByText(/já foi aberta no Outlook em/)).toBeInTheDocument());
+    expect(screen.getByRole('status')).toHaveTextContent(/comece uma nova requisição/);
+    await waitFor(() => expect(localStorage.getItem(DRAFT_STORAGE_KEY)).toContain('sentAt'));
+
+    // The warning survives a reload, so the same requisition is not sent twice by mistake.
+    unmount();
+    render(<App />);
+    expect(screen.getByText(/já foi aberta no Outlook em/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nova requisição' }));
+    expect(screen.getByLabelText(/Solicitante/)).toHaveValue('');
+    expect(screen.queryByText(/já foi aberta no Outlook em/)).not.toBeInTheDocument();
+  });
+
   it('marks invalid fields and moves focus to the first one', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Abrir no Outlook/i }));
@@ -66,7 +85,9 @@ describe('App submission', () => {
     const requester = screen.getByLabelText(/Solicitante/);
     expect(requester).toHaveAttribute('aria-invalid', 'true');
     expect(requester).toHaveAccessibleDescription('Solicitante é obrigatório.');
-    expect(screen.getByRole('alert')).toHaveTextContent('Solicitante é obrigatório.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '10 campos precisam ser corrigidos. Comece por: Solicitante é obrigatório.'
+    );
     await waitFor(() => expect(requester).toHaveFocus());
     expect(window.location.href).toBe('');
   });
@@ -81,9 +102,43 @@ describe('App draft', () => {
 
     render(<App />);
     expect(screen.getByLabelText(/Solicitante/)).toHaveValue('Maria');
+    expect(screen.getByText(/Rascunho recuperado de \d{2}\/\d{2} às \d{2}:\d{2}/)).toBeInTheDocument();
 
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     fireEvent.click(screen.getByRole('button', { name: /Limpar formulário/i }));
     expect(screen.getByLabelText(/Solicitante/)).toHaveValue('');
+  });
+});
+
+describe('App items', () => {
+  it('undoes a removal and keeps focus on a nearby item', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText(/Adicionar Outro Item/i));
+    const descriptions = screen.getAllByLabelText(/Descrição Detalhada/);
+    fireEvent.change(descriptions[0], { target: { value: 'Primeiro' } });
+    fireEvent.change(descriptions[1], { target: { value: 'Segundo' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remover Item 1' }));
+    expect(screen.getAllByLabelText(/Descrição Detalhada/)).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Item 1 removido.');
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Item 1 da Requisição/ })).toHaveFocus());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desfazer' }));
+    const restored = screen.getAllByLabelText(/Descrição Detalhada/);
+    expect(restored.map((el) => (el as HTMLTextAreaElement).value)).toEqual(['Primeiro', 'Segundo']);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Item 1 da Requisição/ })).toHaveFocus());
+  });
+
+  it('duplicates an item right after it, with all its data', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText(/Descrição Detalhada/), { target: { value: 'Luva' } });
+    fireEvent.change(screen.getByLabelText(/Tipo de Origem/), { target: { value: 'Fornecedor' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicar Item 1' }));
+
+    const descriptions = screen.getAllByLabelText(/Descrição Detalhada/);
+    expect(descriptions.map((el) => (el as HTMLTextAreaElement).value)).toEqual(['Luva', 'Luva']);
+    expect(screen.getAllByLabelText(/Tipo de Origem/)[1]).toHaveValue('Fornecedor');
+    await waitFor(() => expect(screen.getAllByLabelText(/Código do Item/)[1]).toHaveFocus());
   });
 });

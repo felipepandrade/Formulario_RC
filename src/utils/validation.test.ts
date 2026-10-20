@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateRequisition } from './validation';
+import { errorSummary, validateRequisition } from './validation';
 import { createInitialItem } from './items';
 import { RequisitionItem } from '../types';
 
@@ -35,5 +35,28 @@ describe('validateRequisition', () => {
   it('prefixes the first error with the item number when there are several items', () => {
     const { firstError } = validateRequisition('Ana', 'ESOM_F_CATU_OI', [validItem(), { ...validItem(), price: '0' }]);
     expect(firstError).toBe('Item 2: Preço deve ser maior que 0.');
+  });
+
+  it('requires the subinventory only when the destination is stock', () => {
+    const toStock = { ...validItem(), destinationType: 'Estoque' };
+    expect(validateRequisition('Ana', 'ESOM_F_CATU_OI', [toStock]).errors.items[0]).toEqual({
+      subInventory: 'Subinventário é obrigatório quando o destino é Estoque.',
+    });
+    expect(validateRequisition('Ana', 'ESOM_F_CATU_OI', [{ ...toStock, subInventory: 'EPI' }]).firstError).toBeNull();
+  });
+
+  it('counts every invalid field', () => {
+    const { errorCount } = validateRequisition(' ', 'Selecione', [{ ...createInitialItem(), quantity: '' }]);
+    expect(errorCount).toBe(11);
+  });
+});
+
+describe('errorSummary', () => {
+  it('shows a single error as is and summarizes several', () => {
+    expect(errorSummary(null, 0)).toBeNull();
+    expect(errorSummary('Solicitante é obrigatório.', 1)).toBe('Solicitante é obrigatório.');
+    expect(errorSummary('Solicitante é obrigatório.', 3)).toBe(
+      '3 campos precisam ser corrigidos. Comece por: Solicitante é obrigatório.'
+    );
   });
 });

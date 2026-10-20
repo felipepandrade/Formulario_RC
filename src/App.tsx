@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { PlusCircle, Mail, AlertCircle, User, Copy, Check, Download, RotateCcw, Save } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { PlusCircle, Mail, AlertCircle, User, Copy, Check, Download, RotateCcw, Save, Info } from 'lucide-react';
 import { RequisitionItem } from './types';
 import {
   LOCATIONS,
@@ -9,15 +9,16 @@ import { Input, Select } from './components/InputFields';
 import { EngieLogo } from './components/Logo';
 import RequisitionItemCard from './components/RequisitionItemCard';
 import { formatRequisitionEmail } from './utils/emailTemplates';
-import { formatBRL, toFileNameFragment } from './utils/format';
-import { createInitialItem, requisitionTotal, SELECT_PLACEHOLDER } from './utils/items';
-import { FormErrors, validateRequisition } from './utils/validation';
-import { clearDraft, loadDraft, saveDraft } from './utils/draft';
+import { formatBRL, formatShortDateTime, toFileNameFragment } from './utils/format';
+import { createInitialItem, generateId, requisitionTotal, SELECT_PLACEHOLDER } from './utils/items';
+import { errorSummary, FormErrors, validateRequisition } from './utils/validation';
+import { clearDraft, Draft, isDraftEmpty, loadDraft, saveDraft } from './utils/draft';
 
 // Outlook (and Windows, which hands the link to it) fails or truncates mailto: links
 // longer than about 2000 characters.
 const MAILTO_MAX_LENGTH = 2000;
 const STATUS_MESSAGE_MS = 6000;
+const UNDO_MESSAGE_MS = 10000;
 const DRAFT_SAVE_DELAY_MS = 400;
 
 // Body used when the requisition is too long for the link: the full text goes to the clipboard.
@@ -27,6 +28,30 @@ const PASTE_INSTRUCTIONS =
 
 const scrollBehavior = (): ScrollBehavior =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
+interface StatusMessage {
+  text: string;
+  action?: { label: string; onClick: () => void };
+}
+
+// Where to put the keyboard focus after the list of items changes.
+interface FocusTarget {
+  itemId: string;
+  /** 'field' puts the cursor in the item's first field; 'heading' only moves focus to the item. */
+  mode: 'field' | 'heading';
+}
+
+// Shifts per-item errors when an item is removed (delta -1) or put back (delta +1) at `index`.
+function shiftItemErrors(items: FormErrors['items'], index: number, delta: 1 | -1): FormErrors['items'] {
+  const shifted: FormErrors['items'] = {};
+  Object.entries(items).forEach(([key, value]) => {
+    const i = Number(key);
+    if (i < index) shifted[i] = value;
+    else if (delta === 1) shifted[i + 1] = value;
+    else if (i > index) shifted[i - 1] = value;
+  });
+  return shifted;
+}
 
 const buildMailtoLink = (to: string, subject: string, body: string) =>
   `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -63,18 +88,37 @@ export default function App() {
   const [requester, setRequester] = useState(initialDraft?.requester ?? '');
   const [location, setLocation] = useState(initialDraft?.location ?? SELECT_PLACEHOLDER);
   const [items, setItems] = useState<RequisitionItem[]>(() => initialDraft?.items ?? [createInitialItem()]);
+  const [sentAt, setSentAt] = useState(initialDraft?.sentAt);
+  const [restoredAt, setRestoredAt] = useState(() =>
+    initialDraft && !isDraftEmpty(initialDraft) ? initialDraft.savedAt : undefined
+  );
 
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({ items: {} });
-  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusMessage | null>(null);
   const [focusErrorRequest, setFocusErrorRequest] = useState(0);
-  const statusTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Latest items for the stable item callbacks (duplicate/remove), which run after render.
+  const itemsRef = useRef(items);
+  useLayoutEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
-  // Save a draft in this browser so a reload or a closed tab does not lose the form.
+  // Save a draft in this browser so a reload or a closed tab does not lose the form. Saving is
+  // debounced while typing and flushed when the page is hidden or closed.
+  const latestDraft = useRef<Draft>({ requester, location, items, sentAt });
   useEffect(() => {
-    const timer = setTimeout(() => saveDraft({ requester, location, items }), DRAFT_SAVE_DELAY_MS);
+    latestDraft.current = { requester, location, items, sentAt };
+    const timer = setTimeout(() => saveDraft(latestDraft.current), DRAFT_SAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [requester, location, items]);
+  }, [requester, location, items, sentAt]);
+
+  useEffect(() => {
+    const flush = () => saveDraft(latestDraft.current);
+    window.addEventListener('pagehide', flush);
+    return () => window.removeEventListener('pagehide', flush);
+  }, []);
 
   useEffect(() => () => clearTimeout(statusTimer.current), []);
 
@@ -86,29 +130,32 @@ export default function App() {
     field?.scrollIntoView?.({ block: 'center', behavior: scrollBehavior() });
   }, [focusErrorRequest]);
 
-  // When an item is added, bring the new card into view and put the cursor in its first field.
-  const itemCount = useRef(items.length);
+  // After adding, duplicating, removing or restoring an item, move focus to the right card so
+  // keyboard and screen reader users are not sent back to the top of the page.
   useEffect(() => {
-    const added = items.length > itemCount.current;
-    itemCount.current = items.length;
-    if (!added) return;
-    const cards = document.querySelectorAll<HTMLElement>('[data-item-card]');
-    const card = cards[cards.length - 1];
-    card?.scrollIntoView?.({ block: 'start', behavior: scrollBehavior() });
-    card?.querySelector<HTMLElement>('input, textarea, select')?.focus({ preventScroll: true });
-  }, [items.length]);
+    if (!focusTarget) return;
+    const card = document.querySelector<HTMLElement>(`[data-item-card="${focusTarget.itemId}"]`);
+    if (!card) return;
+    card.scrollIntoView?.({ block: 'start', behavior: scrollBehavior() });
+    const target =
+      focusTarget.mode === 'field'
+        ? card.querySelector<HTMLElement>('input, textarea, select')
+        : card.querySelector<HTMLElement>('h3');
+    target?.focus({ preventScroll: true });
+  }, [focusTarget]);
 
-  const showStatus = useCallback((message: string) => {
+  // Shows a message in the action bar. Pass `durationMs: null` to keep it until the next action.
+  const showStatus = useCallback((message: StatusMessage, durationMs: number | null = STATUS_MESSAGE_MS) => {
     clearTimeout(statusTimer.current);
-    setCopyStatus(message);
-    statusTimer.current = setTimeout(() => setCopyStatus(null), STATUS_MESSAGE_MS);
+    setStatus(message);
+    if (durationMs !== null) statusTimer.current = setTimeout(() => setStatus(null), durationMs);
   }, []);
 
-  const clearMessages = () => {
+  const clearMessages = useCallback(() => {
     clearTimeout(statusTimer.current);
-    setCopyStatus(null);
+    setStatus(null);
     setError(null);
-  };
+  }, []);
 
   const handleRequesterChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setRequester(e.target.value);
@@ -144,47 +191,72 @@ export default function App() {
   }, []);
 
   const addItem = useCallback(() => {
-    setItems((prevItems) => [
-      ...prevItems,
-      createInitialItem(),
-    ]);
+    const item = createInitialItem();
+    setItems((prevItems) => [...prevItems, item]);
+    setFocusTarget({ itemId: item.id, mode: 'field' });
   }, []);
 
-  const removeItem = useCallback((index: number) => {
+  const duplicateItem = useCallback((index: number) => {
+    const source = itemsRef.current[index];
+    if (!source) return;
+    const copy = { ...source, id: generateId() };
+    setItems((prevItems) => [...prevItems.slice(0, index + 1), copy, ...prevItems.slice(index + 1)]);
+    setFormErrors((prev) => ({ ...prev, items: shiftItemErrors(prev.items, index + 1, 1) }));
+    setFocusTarget({ itemId: copy.id, mode: 'field' });
+    showStatus({ text: `Item ${index + 1} duplicado. Revise os dados do novo item ${index + 2}.` });
+  }, [showStatus]);
+
+  const restoreItem = useCallback((item: RequisitionItem, index: number) => {
     setItems((prevItems) => {
-      if (prevItems.length === 1) return prevItems;
-      const newItems = [...prevItems];
-      newItems.splice(index, 1);
-      return newItems;
+      if (prevItems.some((i) => i.id === item.id)) return prevItems;
+      const at = Math.min(index, prevItems.length);
+      return [...prevItems.slice(0, at), item, ...prevItems.slice(at)];
     });
-    setFormErrors((prev) => {
-      const newItemsErrors: FormErrors['items'] = {};
-      Object.entries(prev.items).forEach(([key, val]) => {
-        const numKey = Number(key);
-        if (numKey < index) {
-          newItemsErrors[numKey] = val;
-        } else if (numKey > index) {
-          newItemsErrors[numKey - 1] = val;
-        }
-      });
-      return { ...prev, items: newItemsErrors };
-    });
+    setFormErrors((prev) => ({ ...prev, items: shiftItemErrors(prev.items, index, 1) }));
+    setFocusTarget({ itemId: item.id, mode: 'heading' });
+    clearTimeout(statusTimer.current);
+    setStatus(null);
   }, []);
 
-  const handleClearForm = () => {
-    if (!window.confirm('Apagar todos os dados preenchidos e começar uma nova requisição?')) return;
+  // Removes at once, with a few seconds to undo, and keeps focus on a nearby item.
+  const removeItem = useCallback((index: number) => {
+    const current = itemsRef.current;
+    const removed = current[index];
+    if (current.length === 1 || !removed) return;
+    const neighbor = current[index + 1] ?? current[index - 1];
+    setItems(current.filter((_, i) => i !== index));
+    setFormErrors((prev) => ({ ...prev, items: shiftItemErrors(prev.items, index, -1) }));
+    setFocusTarget({ itemId: neighbor.id, mode: 'heading' });
+    showStatus(
+      {
+        text: `Item ${index + 1} removido.`,
+        action: { label: 'Desfazer', onClick: () => restoreItem(removed, index) },
+      },
+      UNDO_MESSAGE_MS
+    );
+  }, [restoreItem, showStatus]);
+
+  const resetForm = useCallback(() => {
     clearDraft();
     setRequester('');
     setLocation(SELECT_PLACEHOLDER);
     setItems([createInitialItem()]);
     setFormErrors({ items: {} });
+    setSentAt(undefined);
+    setRestoredAt(undefined);
     clearMessages();
+    window.scrollTo?.({ top: 0, behavior: scrollBehavior() });
+  }, [clearMessages]);
+
+  const handleClearForm = () => {
+    if (!window.confirm('Apagar todos os dados preenchidos e começar uma nova requisição?')) return;
+    resetForm();
   };
 
   const validateForm = (): boolean => {
-    const { errors, firstError } = validateRequisition(requester, location, items);
+    const { errors, firstError, errorCount } = validateRequisition(requester, location, items);
     setFormErrors(errors);
-    setError(firstError);
+    setError(errorSummary(firstError, errorCount));
     if (firstError) {
       setFocusErrorRequest((n) => n + 1);
       return false;
@@ -217,7 +289,9 @@ export default function App() {
 
     // 4. Abrir Outlook via mailto. If the full text does not fit in the link, copy it to the
     // clipboard and open the e-mail with recipient and subject filled in, ready to paste.
+    const newRequisition = { label: 'Nova requisição', onClick: resetForm };
     let mailtoLink = buildMailtoLink(recipientEmail, subject, body);
+    let message = 'E-mail aberto no Outlook. Depois de enviá-lo, comece uma nova requisição para não repetir o pedido.';
     if (mailtoLink.length > MAILTO_MAX_LENGTH) {
       if (!(await copyText(body))) {
         setError(
@@ -226,12 +300,16 @@ export default function App() {
         return;
       }
       mailtoLink = buildMailtoLink(recipientEmail, subject, PASTE_INSTRUCTIONS);
-      showStatus(
-        'A requisição é longa demais para ir pelo link, então o texto completo foi copiado. No e-mail que abriu, apague o texto e cole com Ctrl+V.'
-      );
+      message =
+        'A requisição é longa demais para ir pelo link, então o texto completo foi copiado. No e-mail que abriu, apague o texto e cole com Ctrl+V.';
     }
 
+    // Saved right away: people often close the tab as soon as Outlook opens.
+    const openedAt = new Date().toISOString();
+    saveDraft({ requester, location, items, sentAt: openedAt });
+    setSentAt(openedAt);
     window.location.href = mailtoLink;
+    showStatus({ text: message, action: newRequisition }, null);
   };
 
   const handleCopyClipboard = async () => {
@@ -239,7 +317,7 @@ export default function App() {
     if (!validateForm()) return;
     const body = formatRequisitionEmail(requester, location, items);
     if (await copyText(body)) {
-      showStatus('Solicitação copiada com sucesso para a área de transferência!');
+      showStatus({ text: 'Solicitação copiada com sucesso para a área de transferência!' });
     } else {
       setError('Não foi possível copiar automaticamente para a área de transferência. Use "Baixar (.txt)".');
     }
@@ -262,10 +340,7 @@ export default function App() {
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
 
-  // ⚡ Bolt Optimization: Memoize the rendered items list
-  // Prevents O(N) array mapping and shallow prop comparisons when the user
-  // types in the global form fields (Solicitante/Local).
-  // Expected Impact: Render time for global field keystrokes drops from O(N) to O(1).
+  // Memoized so typing in Solicitante/Local does not re-render every item card.
   const renderedItems = useMemo(() => {
     const canRemove = items.length > 1;
     return items.map((item, index) => (
@@ -277,9 +352,10 @@ export default function App() {
         errors={formErrors.items[index]}
         updateItem={updateItem}
         removeItem={removeItem}
+        duplicateItem={duplicateItem}
       />
     ));
-  }, [items, formErrors.items, updateItem, removeItem]);
+  }, [items, formErrors.items, updateItem, removeItem, duplicateItem]);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -296,15 +372,20 @@ export default function App() {
       <main className="mx-auto max-w-5xl px-4 pt-8 pb-10 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Requisição de Compra
             </h1>
             <p className="mt-2 max-w-2xl text-base text-gray-700">
               Preencha os dados abaixo e clique para abrir sua solicitação diretamente no Outlook.
             </p>
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-gray-600">
-              <Save className="h-4 w-4 shrink-0" aria-hidden="true" />
-              O preenchimento fica salvo neste navegador até você limpar o formulário.
+            <p className="mt-2 flex items-start gap-1.5 text-sm text-gray-700">
+              <Save className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                O preenchimento fica salvo neste navegador até você limpar o formulário.
+                {restoredAt && !sentAt && (
+                  <> <strong className="font-bold">Rascunho recuperado de {formatShortDateTime(restoredAt)}.</strong></>
+                )}
+              </span>
             </p>
           </div>
           <button
@@ -318,8 +399,28 @@ export default function App() {
           </button>
         </div>
 
+        {sentAt && (
+          <div className="mb-6 flex flex-col gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-orange-700 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-start gap-2 text-sm">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                <strong className="font-bold">Esta requisição já foi aberta no Outlook em {formatShortDateTime(sentAt)}.</strong>{' '}
+                Se o e-mail já foi enviado, comece uma nova para não repetir o pedido.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg border border-orange-200 bg-white px-4 text-sm font-bold text-orange-700 hover:bg-orange-100 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-orange-200"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nova requisição
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleOpenOutlook} noValidate className="space-y-6">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-700">
             Campos marcados com <span className="font-bold text-red-600">*</span> são obrigatórios.
           </p>
 
@@ -368,29 +469,43 @@ export default function App() {
 
           {/* Summary and actions stay in view while the form scrolls. */}
           <div className="sticky bottom-0 z-10 -mx-4 border-t border-gray-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-sm sm:mx-0 sm:rounded-xl sm:border sm:px-5 sm:pt-4 sm:pb-4">
-            {copyStatus && (
-              <div role="status" className="mb-3 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
-                <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
-                <p className="text-sm font-bold">{copyStatus}</p>
-              </div>
-            )}
-
-            {error && (
-              <div role="alert" className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
-                <div className="text-sm">
-                  <h3 className="font-bold">Atenção</h3>
-                  <p className="mt-0.5">{error}</p>
+            {/* Live regions stay in the page (empty when idle) so screen readers announce new text. */}
+            <div role="status" aria-live="polite">
+              {status && (
+                <div className="mb-3 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
+                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
+                  <p className="flex-1 text-sm font-bold">{status.text}</p>
+                  {status.action && (
+                    <button
+                      type="button"
+                      onClick={status.action.onClick}
+                      className="-my-1 inline-flex h-9 shrink-0 items-center rounded-lg border border-green-200 bg-white px-3 text-sm font-bold text-green-800 hover:bg-green-100 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-green-200"
+                    >
+                      {status.action.label}
+                    </button>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            <div role="alert">
+              {error && (
+                <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
+                  <p className="text-sm">
+                    <span className="font-bold">Atenção: </span>
+                    {error}
+                  </p>
+                </div>
+              )}
+            </div>
 
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center justify-between gap-6 lg:justify-start">
                 <h2 className="sr-only">Resumo da Requisição</h2>
                 <div>
                   <p className="text-xs text-gray-600">Valor Total Estimado</p>
-                  <p className="text-2xl font-black leading-tight text-brand-700 tabular-nums">
+                  <p className="text-2xl font-bold leading-tight text-brand-700 tabular-nums">
                     {formatBRL(totalEstimatedValue)}
                   </p>
                 </div>
